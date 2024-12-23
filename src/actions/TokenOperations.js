@@ -4,13 +4,13 @@ import { question } from '../utils/question.js';
 import { connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 import { PublicKey } from '@solana/web3.js';
 
-export async function handleTokenConsolidation(selectedWallets) {
+export async function handleTokenConsolidation(MainWallet, selectedWallets) {
     try {
         if (selectedWallets.length < 2) {
             throw new Error(`\x1b[31m~~~ [!] | ERROR | Необходимо выбрать минимум 2 кошелька\x1b[0m`);
         }
 
-        const targetWallet = selectedWallets[1];
+        const targetWallet = MainWallet;
         let consolidationComplete = false;
 
         while (!consolidationComplete) {

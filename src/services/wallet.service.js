@@ -202,7 +202,7 @@ export async function walletInfo(wallets, positionCheck = true) {
 
         switch (choice) {
             case '1':
-                await handleTokenConsolidation(wallets);
+                await handleTokenConsolidation(wallets[0], wallets);
                 break;
             case '2':
                 await handleSolConsolidation(wallets[0], wallets);
