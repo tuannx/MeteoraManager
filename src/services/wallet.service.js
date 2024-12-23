@@ -10,7 +10,6 @@ import { handleTokenConsolidation } from '../actions/TokenOperations.js';
 import { handleSolConsolidation, handleSolDistribution } from '../actions/SolOperations.js';
 import { processClaimRewards } from './position.service.js';
 import { displayLogo } from '../utils/logger.js';
-import { getPoolsInfo } from './pool.service.js';
 
 export async function displayPositionsTable(wallets,positionCheck = true) {
     const tableData = [];
@@ -58,17 +57,6 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
                 const percentFromCurrent = ((upperTokenPrice - currentTokenPrice) / currentTokenPrice * 100).toFixed(2);
                 const priceIndicator = `${percentFromCurrent > 0 ? '+' : ''}${percentFromCurrent}%`;
 
-                // Получаем информацию о пуле для текущего токена
-                const poolsInfo = await getPoolsInfo(position.poolInfo.x_mint);
-                const currentPool = poolsInfo.find(pool => pool.pairAddress === position.poolAddress);
-                
-                let feesEstimate = 'Н/Д';
-                if (currentPool && currentPool.liquidity && currentPool.volume?.m5 && currentPool.volume?.h1) {
-                    const fee5m = Number((1 / ((currentPool.liquidity / ((currentPool.volume.m5 / 100) * currentPool.baseFee)) / 100)).toFixed(3));
-                    const fee1h = Number((1 / ((currentPool.liquidity / ((currentPool.volume.h1 / 100) * currentPool.baseFee)) / 100)).toFixed(3));
-                    feesEstimate = `$${fee5m} / $${fee1h}`;
-                }
-
                 tableData.push({
                     '👛 WALLET': wallet.description.slice(0, 4) + '..',
                     '🏊 POOL': pool,
@@ -80,7 +68,6 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
                     '🤑 TOTAL-VALUE': `$${totalPositionUSD.toFixed(2)}`,
                     '💱 TOKEN/SOL-FEE': `${token1Amount.toFixed(3)} / ${token2Amount.toFixed(3)} SOL`,
                     '🤑 TOTAL-FEE': `$${totalFeeUSD.toFixed(2)}`,
-                    '💰 EST-FEE-5M/1H FOR 100$': feesEstimate,
                 });
             }
         }
@@ -156,7 +143,7 @@ export async function walletInfo(wallets, positionCheck = true) {
                     { programId: TOKEN_PROGRAM_ID }
                 );
 
-                for (const { account } of tokens.value) {
+                const tokenPromises = tokens.value.map(async ({ account }) => {
                     const tokenInfo = account.data.parsed.info;
                     const tokenAmount = tokenInfo.tokenAmount;
 
@@ -180,7 +167,8 @@ export async function walletInfo(wallets, positionCheck = true) {
                             console.log(`~~~ [!] [${user.publicKey.toString().slice(0, 4)}..] Пропущен токен ${tokenInfo.mint}: нет данных о цене | utils.js`);
                         }
                     }
-                }
+                });
+                await Promise.all(tokenPromises);
             }
         } catch (error) {
             console.error(`~~~ [!] [${wallet.description.slice(0, 4)}..] Ошибка обработки кошелька | UserInfo.js`);

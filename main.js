@@ -6,7 +6,7 @@ import { question } from './src/utils/question.js';
 import { ACTIONS, WALLET_ACTIONS, CONSOLIDATION_ACTIONS, ADD_LIQUIDITY_ACTIONS } from './src/actions/index.js';
 import { displayPositionsTable } from './src/services/wallet.service.js';
 import * as actions from './src/actions/index.js';
-import { logWallets, displayLogo } from './src/utils/logger.js';
+import { displayLogo, selectWallets } from './src/utils/logger.js';
 
 const ACTION_DESCRIPTIONS = {
     [ACTIONS.ADD_LIQUIDITY]: "Добавить ликвидность",
@@ -28,24 +28,6 @@ const CONSOLIDATION_MENU_DESCRIPTIONS = {
     [CONSOLIDATION_ACTIONS.TOKEN_CONSOLIDATION]: "Консолидировать токены",
     [CONSOLIDATION_ACTIONS.SOL_CONSOLIDATION]: "Консолидировать SOL",
 };
-
-async function selectWallets() {
-    await logWallets();
-
-    const walletInput = await question("\n[...] Введите номера кошельков через запятую (1,2,3) или '0' для всех: ");
-    
-    if (walletInput === '0') {
-        return Object.values(WALLETS);
-    }
-    
-    return walletInput.split(',')
-        .map(num => num.trim())
-        .map(num => {
-            const wallet = WALLETS[num];
-            if (!wallet) throw new Error(`[!] [${num}] Кошелёк не найден`);
-            return wallet;
-        });
-}
 
 async function main() {
     try {

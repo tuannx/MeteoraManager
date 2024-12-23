@@ -9,6 +9,24 @@ export async function logWallets() {
     }
 }
 
+export async function selectWallets(WALLETS) {
+    await logWallets();
+
+    const walletInput = await question("\n[...] Введите номера кошельков через запятую (1,2,3) или '0' для всех: ");
+    
+    if (walletInput === '0') {
+        return Object.values(WALLETS);
+    }
+    
+    return walletInput.split(',')
+        .map(num => num.trim())
+        .map(num => {
+            const wallet = WALLETS[num];
+            if (!wallet) throw new Error(`[!] [${num}] Кошелёк не найден`);
+            return wallet;
+        });
+}
+
 export async function displayLogo() {
     process.stdout.write('\x1Bc');
     console.log(`
@@ -24,7 +42,7 @@ export async function displayLogo() {
                                                                ███    ███ \x1b[0m
 
 \x1b[33m=================================================================
-                Created with ❤️ by SECTOR | @sectordot
+                Created by SECTOR | @sectordot
                 TG: https://t.me/sectormoves
 =================================================================\x1b[0m
 

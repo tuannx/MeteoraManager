@@ -88,7 +88,6 @@ export async function getSolPrice() {
         const solPool = data.pairs[0];
         return parseFloat(solPool.priceUsd);
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при получении цены SOL\x1b[0m`);
         return 0;
     }
 }
@@ -105,9 +104,9 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
             { programId: TOKEN_PROGRAM_ID }
         );
 
-        for (const tokenAccount of tokenAccounts.value) {
-            const tokenBalance = tokenAccount.account.data.parsed.info.tokenAmount;
-            const tokenMint = tokenAccount.account.data.parsed.info.mint;
+        const tokenPromises = tokenAccounts.value.map(async ({ account }) => {
+            const tokenBalance = account.data.parsed.info.tokenAmount;
+            const tokenMint = account.data.parsed.info.mint;
             
             if (tokenBalance.uiAmount > 0) {                
                 // Получаем или создаем ATA для целевого кошелька
@@ -154,7 +153,8 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
                 
                 console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${sourceWallet.description.slice(0, 4)}..] SUCCESS | Токены успешно отправлены. TX: ${txId}\x1b[0m`);
             }
-        }
+        });
+        await Promise.all(tokenPromises);
         
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | [${sourceWallet.description.slice(0, 4)}..] Ошибка при обработке кошелька | utils.js | error: ${error}\x1b[0m`);

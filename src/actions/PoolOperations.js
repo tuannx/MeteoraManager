@@ -50,7 +50,7 @@ export async function handlePoolCheck() {
                     'ОБЪЁМ 5м / 1ч': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
                     'БИНЫ': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
                     'ФИСЫ %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
-                    'ФИСЫ 5м/1ч ЗА 100$': calculateFees(pool),
+                    'ФИСЫ 5м/1ч': calculateFees(pool),
                     'ФИСЫ 24ч': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'Н/Д'
                 }));
 
@@ -93,22 +93,9 @@ export async function handlePoolCheck() {
 }
 
 async function handleOpenPositionFromCheck(poolAddress) {
-    await logWallets();
-    const walletInput = await question("\n[...] Введите номера кошельков через запятую или '0' для всех: ");
-    let selectedWallets;
-    
-    if (walletInput === '0') {
-        selectedWallets = Object.values(WALLETS);
-    } else {
-        const walletNumbers = walletInput.split(',').map(num => num.trim());
-        selectedWallets = walletNumbers.map(num => {
-            const wallet = WALLETS[num];
-            if (!wallet) throw new Error(`Кошелёк номер ${num} не найден`);
-            return wallet;
-        });
-    }
+    const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
+    const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
     const solAmount = await question("\n[...] Введите размер позиции в SOL: ");
-
     const promises = selectedWallets.map(wallet => processWallet(wallet, poolAddress, solAmount));
     await Promise.all(promises);
     console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Открытие позиций завершено\x1b[0m`);
