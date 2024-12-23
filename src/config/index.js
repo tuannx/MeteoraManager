@@ -1,9 +1,5 @@
 import pkg from '@solana/web3.js';
-import dotenv from 'dotenv';
 const { PublicKey, Connection } = pkg;
-
-// Загружаем переменные из .env файла
-dotenv.config();
 
 // Перехватываем все консольные логи, связанные с 429
 const originalConsoleError = console.error;
