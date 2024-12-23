@@ -1,5 +1,5 @@
 import { VersionedTransaction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, connection } from '../config/index.js';
+import { TOKEN_PROGRAM_ID, connection, getConnection } from '../config/index.js';
 
 const SLIPPAGE_BPS = 5 * 100; // 2%
 const PRIORITY_FEE = 0.01 * 1000000000; // 0.01 SOL
@@ -44,17 +44,18 @@ async function sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt = 1)
             const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
             transaction.sign([wallet.payer]);
 
-            const latestBlockhash = await connection.getLatestBlockhash();
+            const conn = await getConnection();
+            const latestBlockhash = await conn.getLatestBlockhash();
             const rawtransaction = transaction.serialize();
             
-            const txid = await connection.sendRawTransaction(rawtransaction, {
+            const txid = await conn.sendRawTransaction(rawtransaction, {
                 skipPreflight: true,
                 maxRetries: 2
             });
 
             console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${wallet.description.slice(0, 4)}..] SUCCESS | Транзакция отправлена: https://solscan.io/tx/${txid}\x1b[0m`);
 
-            await connection.confirmTransaction({
+            await conn.confirmTransaction({
                 blockhash: latestBlockhash.blockhash,
                 lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
                 signature: txid
@@ -86,7 +87,8 @@ async function sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt = 1)
 
 export async function sellAllTokens(wallet) {
     try {
-        const tokens = await connection.getParsedTokenAccountsByOwner(
+        const conn = await getConnection();
+        const tokens = await conn.getParsedTokenAccountsByOwner(
             wallet.publicKey,
             { programId: TOKEN_PROGRAM_ID }
         );

@@ -42,7 +42,7 @@ export async function displayLogo() {
                                                                ███    ███ \x1b[0m
 
 \x1b[33m=================================================================
-                Created by SECTOR | @sectordot
+                Created with ❤️ by SECTOR | @sectordot
                 TG: https://t.me/sectormoves
 =================================================================\x1b[0m
 

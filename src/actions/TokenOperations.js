@@ -1,7 +1,7 @@
 import { consolidateTokens } from '../services/utils.service.js';
 import { processSellAllTokens } from '../services/position.service.js';
 import { question } from '../utils/question.js';
-import { connection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 import { PublicKey } from '@solana/web3.js';
 
 export async function handleTokenConsolidation(selectedWallets) {
@@ -33,7 +33,8 @@ export async function handleTokenConsolidation(selectedWallets) {
                 selectedWallets
                     .filter(wallet => wallet.description !== targetWallet.description)
                     .map(async (wallet) => {
-                        const accounts = await connection.getParsedTokenAccountsByOwner(
+                        const conn = await getConnection();
+                        const accounts = await conn.getParsedTokenAccountsByOwner(
                             new PublicKey(wallet.description),
                             { programId: TOKEN_PROGRAM_ID }
                         );

@@ -1,28 +1,109 @@
 import pkg from '@solana/web3.js';
 const { PublicKey, Connection } = pkg;
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
-// Перехватываем все консольные логи, связанные с 429
+// Настройки RPC и прокси
+const RPC_CONFIG = {
+    USE_MULTI_RPC: 1, // 0 - используется одна RPCшка, 1 - используется несколько RPCшек
+    USE_MULTI_PROXY: 0, // 0 - не используется прокси, 1 - используется прокси
+    POOL_SIZE: 5,
+};
+
+const RPC_ENDPOINTS = [
+    "https://api.mainnet-beta.solana.com",
+    "https://api.testnet.solana.com",
+];
+
+const PROXY_LIST = [
+    "0.0.0.0:0000:username:password",
+    "0.0.0.0:0000:username:password"
+];
+
+class ConnectionPool {
+    constructor(rpcEndpoints, proxyList, options = {}) {
+        this.rpcEndpoints = rpcEndpoints;
+        this.proxies = proxyList.map(this.formatProxy);
+        this.options = {
+            poolSize: options.poolSize || 5,
+            useMultiRPC: options.useMultiRPC || false,
+            useMultiProxy: options.useMultiProxy || false
+        };
+        
+        this.pool = [];
+        this.currentIndex = 0;
+        
+        this.initializePool();
+    }
+
+    formatProxy(proxy) {
+        const [ip, port, user, pass] = proxy.split(':');
+        return `http://${user}:${pass}@${ip}:${port}`;
+    }
+
+    createConnection(index) {
+        const rpcUrl = this.options.useMultiRPC 
+            ? this.rpcEndpoints[index % this.rpcEndpoints.length]
+            : this.rpcEndpoints[0];
+
+        const fetchOptions = {
+            fetch: (url, options) => {
+                if (this.options.useMultiProxy) {
+                    const proxyUrl = this.proxies[index % this.proxies.length];
+                    options.agent = new HttpsProxyAgent(proxyUrl);
+                }
+                return fetch(url, options);
+            }
+        };
+
+        return new Connection(rpcUrl, {
+            commitment: 'confirmed',
+            confirmTransactionInitialTimeout: 120000,
+            ...fetchOptions
+        });
+    }
+
+    initializePool() {
+        for (let i = 0; i < this.options.poolSize; i++) {
+            this.pool.push(this.createConnection(i));
+        }
+    }
+
+    getConnection() {
+        const connection = this.pool[this.currentIndex];
+        this.currentIndex = (this.currentIndex + 1) % this.pool.length;
+        return connection;
+    }
+}
+
+// Перехват ошибок 429
 const originalConsoleError = console.error;
 console.error = (...args) => {
     if (args.some(arg => 
         typeof arg === 'string' && 
         (arg.includes('429') || arg.includes('Too Many Requests'))
     )) {
-        return; // Пропускаем логи с 429
+        return;
     }
     originalConsoleError.apply(console, args);
 };
 
-// Создаем кастомный fetch без логов для 429
-const fetchWithout429Logs = (url, options) => {
-    const originalFetch = fetch;
-    return originalFetch(url, options).catch(error => {
-        if (!error.message?.includes('429')) {
-            console.error(error);
-        }
-        throw error;
-    });
-};
+// Создаем пул соединений
+const connectionPool = new ConnectionPool(
+    RPC_ENDPOINTS,
+    PROXY_LIST,
+    {
+        poolSize: RPC_CONFIG.POOL_SIZE,
+        useMultiRPC: RPC_CONFIG.USE_MULTI_RPC === 1,
+        useMultiProxy: RPC_CONFIG.USE_MULTI_PROXY === 1
+    }
+);
+
+// Экспорты
+export const connection = connectionPool.getConnection();
+export const getConnection = () => connectionPool.getConnection();
+export const TOTAL_RANGE_INTERVAL = 68;
+export const MAX_PRIORITY_FEE = 1000000;
+export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 
 export const WALLETS = {
     "1": {
@@ -47,12 +128,3 @@ export const WALLETS = {
     },
     // Добавьте дополнительные кошельки по необходимости
 };
-
-export const RPC = "https://api.mainnet-beta.solana.com"
-export const connection = new Connection(RPC, {
-    fetch: fetchWithout429Logs,
-    confirmTransactionInitialTimeout: 120000
-});
-export const TOTAL_RANGE_INTERVAL = 68;
-export const MAX_PRIORITY_FEE = 1000000;
-export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');

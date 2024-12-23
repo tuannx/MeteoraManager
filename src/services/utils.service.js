@@ -2,7 +2,7 @@ import { ComputeBudgetProgram, PublicKey, Transaction, Keypair, SystemProgram, L
 import { createTransferInstruction, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { processSellAllTokens } from './position.service.js';
 import bs58 from 'bs58';
-import { connection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 
 export const modifyPriorityFeeIx = (tx, newPriorityFee) => {
     for (let ix of tx.instructions) {
@@ -97,9 +97,9 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
         const sourcePublicKey = new PublicKey(sourceWallet.description);
         const targetPublicKey = new PublicKey(targetWallet.description);
         const sourceKeypair = Keypair.fromSecretKey(new Uint8Array(bs58.decode(sourceWallet.privateKey)));
-        
+        const conn = await getConnection();
         // Получаем все токены на кошельке
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        const tokenAccounts = await conn.getParsedTokenAccountsByOwner(
             sourcePublicKey,
             { programId: TOKEN_PROGRAM_ID }
         );
@@ -119,7 +119,7 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
                 
                 // Проверяем существование ATA
                 try {
-                    await connection.getAccountInfo(targetATA);
+                    await conn.getAccountInfo(targetATA);
                 } catch {
                     // Если ATA не существует, создаем его
                     transaction.add(
@@ -145,11 +145,11 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
 
                 // Отправляем транзакцию
                 transaction.feePayer = sourcePublicKey;
-                transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+                transaction.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
                 modifyPriorityFeeIx(transaction, 500000);
                 
                 transaction.sign(sourceKeypair);
-                const txId = await connection.sendRawTransaction(transaction.serialize());
+                const txId = await conn.sendRawTransaction(transaction.serialize());
                 
                 console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${sourceWallet.description.slice(0, 4)}..] SUCCESS | Токены успешно отправлены. TX: ${txId}\x1b[0m`);
             }
@@ -164,7 +164,8 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
 
 export const distributeSol = async (sourceWallet, targetWallets, totalAmount) => {
     const randomDelay = Math.floor(Math.random() * 2000); // Случайное число от 0 до 2000 мс
-        await new Promise(resolve => setTimeout(resolve, randomDelay));
+    const conn = await getConnection();
+    await new Promise(resolve => setTimeout(resolve, randomDelay));
     const amountPerWallet = Math.floor((totalAmount * LAMPORTS_PER_SOL) / targetWallets.length);
     
     console.log(`\n\x1b[36m[⌛] WAITING | Распределение ${totalAmount} SOL на ${targetWallets.length} кошельков (${amountPerWallet / LAMPORTS_PER_SOL} SOL на кошелёк)\x1b[0m`);
@@ -186,13 +187,13 @@ export const distributeSol = async (sourceWallet, targetWallets, totalAmount) =>
             
             // Отправляем транзакцию
             transaction.feePayer = sourceKeypair.publicKey;
-            transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+            transaction.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
             modifyPriorityFeeIx(transaction, 100000);
             
             transaction.sign(sourceKeypair);
-            const txId = await connection.sendRawTransaction(transaction.serialize());
+            const txId = await conn.sendRawTransaction(transaction.serialize());
             
-            await connection.confirmTransaction(txId);
+            await conn.confirmTransaction(txId);
             
             console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${targetWallet.description.slice(0, 4)}..] SUCCESS | Успешно отправлено ${amountPerWallet / LAMPORTS_PER_SOL} SOL. TX: https://solscan.io/tx/${txId}\x1b[0m`);
             
@@ -211,9 +212,9 @@ export const consolidateSol = async (sourceWallet, targetWallet) => {
     try {
         const sourceKeypair = Keypair.fromSecretKey(new Uint8Array(bs58.decode(sourceWallet.privateKey)));
         const targetPublicKey = new PublicKey(targetWallet.description);
-        
+        const conn = await getConnection();
         // Получаем баланс исходного кошелька
-        const balance = await connection.getBalance(sourceKeypair.publicKey);
+        const balance = await conn.getBalance(sourceKeypair.publicKey);
         
         // Оставляем 0.002 SOL для комиссий
         const reserveAmount = 0.002 * LAMPORTS_PER_SOL;
@@ -231,11 +232,11 @@ export const consolidateSol = async (sourceWallet, targetWallet) => {
             );
             
             transaction.feePayer = sourceKeypair.publicKey;
-            transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+            transaction.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
             modifyPriorityFeeIx(transaction, 100000);
             
             transaction.sign(sourceKeypair);
-            const txId = await connection.sendRawTransaction(transaction.serialize());
+            const txId = await conn.sendRawTransaction(transaction.serialize());
             
             console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${sourceWallet.description.slice(0, 4)}..] SUCCESS | Успешно отправлено ${transferAmount / LAMPORTS_PER_SOL} SOL. TX: https://solscan.io/tx/${txId}\x1b[0m`);
         }

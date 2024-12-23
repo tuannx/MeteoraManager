@@ -1,11 +1,12 @@
 import pkg from "@meteora-ag/dlmm";
 const { default: DLMM } = pkg;
-import { connection } from '../config/index.js';
+import { connection, getConnection } from '../config/index.js';
 import { PublicKey } from '@solana/web3.js';
 
 export async function getPositions(user) {
     try {
-        const positions = await DLMM.getAllLbPairPositionsByUser(connection, user.publicKey);
+        const conn = await getConnection();
+        const positions = await DLMM.getAllLbPairPositionsByUser(conn, user.publicKey);
         
         if (positions.size === 0) {
             console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Нет активных позиций\x1b[0m`);
@@ -18,7 +19,8 @@ export async function getPositions(user) {
             try {
                 const meteoraResponse = await fetch(`https://app.meteora.ag/clmm-api/pair/${posPoolAddress}`);
                 const meteoraData = await meteoraResponse.json();
-                const token1Decimals = await connection.getTokenSupply(new PublicKey(meteoraData.mint_x));
+                const conn = await getConnection();
+                const token1Decimals = await conn.getTokenSupply(new PublicKey(meteoraData.mint_x));
                 const token2Decimals = 9;
 
                 position.lbPairPositionsData.forEach(pos => {
@@ -74,7 +76,8 @@ export async function getPositions(user) {
 
 export async function getFullPosition(user, poolAddress) {
     try {
-        const positions = await DLMM.getAllLbPairPositionsByUser(connection, user.publicKey);
+        const conn = await getConnection();
+        const positions = await DLMM.getAllLbPairPositionsByUser(conn, user.publicKey);
         
         if (positions.size === 0) {
             console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Нет активных позиций\x1b[0m`);

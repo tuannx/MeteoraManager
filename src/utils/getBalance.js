@@ -1,14 +1,16 @@
-import { connection } from '../config/index.js';
+import { connection, getConnection } from '../config/index.js';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 export async function getSolBalance(wallet) {
-    const balance = await connection.getBalance(new PublicKey(wallet));
+    const conn = await getConnection();
+    const balance = await conn.getBalance(new PublicKey(wallet));
     return balance / LAMPORTS_PER_SOL;
 }
 
 export async function getTokenBalance(wallet, mintAddress) {
     try {
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        const conn = await getConnection();
+        const tokenAccounts = await conn.getParsedTokenAccountsByOwner(
             new PublicKey(wallet),
             { mint: new PublicKey(mintAddress) }
         );

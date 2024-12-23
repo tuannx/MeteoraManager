@@ -2,7 +2,7 @@ import pkg from '@solana/web3.js';
 const { Keypair, LAMPORTS_PER_SOL } = pkg;
 import bs58 from 'bs58';
 import { getTokenInfoByTokenAddress, formatNumber, getSolPrice } from './utils.service.js';
-import { connection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 import { question } from '../utils/question.js';
 import { getPositions } from '../utils/GetPosition.js';
 import { handleRemovePosition } from '../actions/RemovePosition.js';
@@ -24,6 +24,7 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
     console.log("\n\x1b[36m[⌛] WAITING | Получение информации о позициях...\x1b[0m");
 
     const promises = wallets.map(async (wallet) => {
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
         const positions = await getPositions(user);
         
@@ -117,17 +118,18 @@ export async function walletInfo(wallets, positionCheck = true) {
     const tableData = [];
     const solBalances = [];
     let totalUsdValue = 0;
-
+    const solPrice = await getSolPrice();
     console.log("\n[⌛] Получение информации о кошельках...");
 
     const promises = wallets.map(async (wallet) => {
         try {
+            const conn = await getConnection();
+            await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
             const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
             
             // Получаем баланс SOL
-            const solBalance = await connection.getBalance(user.publicKey);
+            const solBalance = await conn.getBalance(user.publicKey);
             const solValue = (solBalance / LAMPORTS_PER_SOL).toFixed(4);
-            const solPrice = await getSolPrice();
             const solUsdValue = (solValue * solPrice).toFixed(2);
             
             solBalances.push({
@@ -138,7 +140,7 @@ export async function walletInfo(wallets, positionCheck = true) {
             totalUsdValue += parseFloat(solUsdValue);
 
             if (positionCheck) {    // Получаем токены
-                const tokens = await connection.getParsedTokenAccountsByOwner(
+                const tokens = await conn.getParsedTokenAccountsByOwner(
                     user.publicKey,
                     { programId: TOKEN_PROGRAM_ID }
                 );

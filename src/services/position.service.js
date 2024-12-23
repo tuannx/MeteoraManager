@@ -7,13 +7,13 @@ import BN from 'bn.js';
 import { modifyPriorityFeeIx, consolidateTokens } from './utils.service.js';
 import { getPositions, getFullPosition } from '../utils/GetPosition.js';
 import { sellAllTokens } from './jupiter.service.js';
-import { TOTAL_RANGE_INTERVAL, connection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { TOTAL_RANGE_INTERVAL, connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 import { getTokenBalance } from '../utils/getBalance.js';
 
 export async function createPosition(poolAddress, user, amountInLamports) {
     try {
-        
-        const dlmmPool = await DLMM.create(connection, poolAddress);
+        const conn = await getConnection();
+        const dlmmPool = await DLMM.create(conn, poolAddress);
         
         const activeBin = await dlmmPool.getActiveBin();
         const totalXAmount = new BN(0);
@@ -39,7 +39,7 @@ export async function createPosition(poolAddress, user, amountInLamports) {
 
         try {
             const createPositionTxHash = await sendAndConfirmTransaction(
-                connection,
+                conn,
                 createPositionTx,
                 [user, newOneSidePosition],
                 { skipPreflight: false, preflightCommitment: "confirmed" }
@@ -55,7 +55,8 @@ export async function createPosition(poolAddress, user, amountInLamports) {
 
 export async function removeLiquidity(poolAddress, user) {
     try {
-        const dlmmPool = await DLMM.create(connection, poolAddress);
+        const conn = await getConnection();
+        const dlmmPool = await DLMM.create(conn, poolAddress);
         const position = await getFullPosition(user, poolAddress);
         
         if (!position) {
@@ -93,7 +94,7 @@ export async function removeLiquidity(poolAddress, user) {
 
         try {
             const txHash = await sendAndConfirmTransaction(
-                connection,
+                conn,
                 removeLiquidityTx,
                 [user],
                 { skipPreflight: false, preflightCommitment: "confirmed" }
@@ -122,14 +123,15 @@ async function consolidateWithRetries(sourceWallets, targetWallet, maxAttempts =
 
         const newRemainingWallets = [];
         
-        for (const sourceWallet of remainingWallets) {
+        const promises = remainingWallets.map(async (sourceWallet) => {
             try {
+                const conn = await getConnection();
                 await consolidateTokens(sourceWallet, targetWallet);
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 5000) });
                 
                 // Проверяем, остались ли токены
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(sourceWallet.privateKey)));
-                const accounts = await connection.getParsedTokenAccountsByOwner(
+                const accounts = await conn.getParsedTokenAccountsByOwner(
                     user.publicKey,
                     { programId: TOKEN_PROGRAM_ID }
                 );
@@ -145,7 +147,8 @@ async function consolidateWithRetries(sourceWallets, targetWallet, maxAttempts =
                 console.error(`\x1b[31m~~~ [!] | ERROR | [${sourceWallet.description.slice(0, 4)}...] Ошибка консолидации: ${error.message}\x1b[0m`);
                 newRemainingWallets.push(sourceWallet);
             }
-        }
+        });
+        await Promise.all(promises);
 
         remainingWallets = newRemainingWallets;
     }
@@ -170,7 +173,8 @@ async function sellTokensWithRetries(wallet, maxAttempts = 3) {
             
             // Проверяем, остались ли токены
             const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
-            const accounts = await connection.getParsedTokenAccountsByOwner(
+            const conn = await getConnection();
+            const accounts = await conn.getParsedTokenAccountsByOwner(
                 user.publicKey,
                 { programId: TOKEN_PROGRAM_ID }
             );
@@ -213,6 +217,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
             
             // Проверяем позиции всех кошельков
             const promises = wallets.map(async wallet => {
+                await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
                 const positions = await getPositions(user);
                 
@@ -221,6 +226,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
                     
                     if (position) {
                         const positionSolValue = position.amounts.positionToken2;
+
                         
                         if (positionSolValue === 0 || position.binID.current === position.binID.lower) {
                             console.log(`\n\x1b[33m• Позиция требует закрытия:\x1b[0m`);
@@ -257,6 +263,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
                             
                             const promises = affectedWallets.map(async (wallet) => {
                                 try {
+                                    await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
                                     console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на закрытие позиции\x1b[0m`);
                                     await processRemoveLiquidity(wallet, poolAddress);
                                     await new Promise(resolve => setTimeout(resolve, 7000));
@@ -298,6 +305,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
                     } else if (action === "2") {
                         // Кейс 2: Закрытие и открытие в токенах
                         const promises = affectedWallets.map(async (wallet) => {
+                            await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
                             let isPositionClosed = false;
                             let isPositionOpened = false;
                             let attempts = 0;
@@ -484,7 +492,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
 
 export async function processWallet(walletData, poolAddress, solAmount) {
     try {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(walletData.privateKey)));
         const amountInLamports = parseFloat(solAmount) * LAMPORTS_PER_SOL;        
         await createPosition(new PublicKey(poolAddress), user, amountInLamports);
@@ -495,7 +503,7 @@ export async function processWallet(walletData, poolAddress, solAmount) {
 
 export async function processRemoveLiquidity(walletData, poolAddress) {
     try {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(walletData.privateKey)));        
         await removeLiquidity(
             new PublicKey(poolAddress),
@@ -509,6 +517,7 @@ export async function processRemoveLiquidity(walletData, poolAddress) {
 
 export async function processSellAllTokens(walletData) {
     try {
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(walletData.privateKey)));
         const wallet = new Wallet(user);
         await sellAllTokens(wallet);
@@ -519,6 +528,7 @@ export async function processSellAllTokens(walletData) {
 
 export async function claimAllRewards(user, poolAddress) {
     try {
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const position = await getFullPosition(user, poolAddress);
         
         if (!position) {
@@ -526,7 +536,8 @@ export async function claimAllRewards(user, poolAddress) {
             return;
         }
 
-        const dlmmPool = await DLMM.create(connection, poolAddress);
+        const conn = await getConnection();
+        const dlmmPool = await DLMM.create(conn, poolAddress);
         
         const positionData = position.lbPairPositionsData[0];
         if (!positionData) {
@@ -556,7 +567,7 @@ export async function claimAllRewards(user, poolAddress) {
             
             try {
                 const txHash = await sendAndConfirmTransaction(
-                    connection,
+                    conn,
                     tx,
                     [user],
                     { skipPreflight: false, preflightCommitment: "confirmed" }
@@ -584,8 +595,6 @@ export async function processClaimRewards(wallets, poolAddress) {
             try {
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
                 await claimAllRewards(user, new PublicKey(poolAddress));
-                
-                await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (error) {
                 console.error(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Ошибка при клейме фисов\x1b[0m`);
             }
@@ -601,8 +610,8 @@ export async function processClaimRewards(wallets, poolAddress) {
 
 export async function createTokenPosition(poolAddress, user) {
     try {
-        const dlmmPool = await DLMM.create(connection, poolAddress);
-        
+        const conn = await getConnection();
+        const dlmmPool = await DLMM.create(conn, poolAddress);
         // Получаем информацию о пуле из API Meteora
         const meteoraResponse = await fetch(`https://app.meteora.ag/clmm-api/pair/${poolAddress.toString()}`);
         const meteoraData = await meteoraResponse.json();
@@ -639,7 +648,7 @@ export async function createTokenPosition(poolAddress, user) {
 
         try {
             const createPositionTxHash = await sendAndConfirmTransaction(
-                connection,
+                conn,
                 createPositionTx,
                 [user, newOneSidePosition],
                 { skipPreflight: false, preflightCommitment: "confirmed" }
@@ -655,7 +664,7 @@ export async function createTokenPosition(poolAddress, user) {
 
 export async function processCreateTokenPosition(walletData, poolAddress) {
     try {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(walletData.privateKey)));        
         await createTokenPosition(new PublicKey(poolAddress), user);
     } catch (error) {
