@@ -93,20 +93,21 @@ export async function getSolPrice() {
 }
 
 export const consolidateTokens = async (sourceWallet, targetWallet) => {
-    try {        
+    try {
+        const conn = await getConnection();
         const sourcePublicKey = new PublicKey(sourceWallet.description);
         const targetPublicKey = new PublicKey(targetWallet.description);
         const sourceKeypair = Keypair.fromSecretKey(new Uint8Array(bs58.decode(sourceWallet.privateKey)));
-        const conn = await getConnection();
+        
         // Получаем все токены на кошельке
         const tokenAccounts = await conn.getParsedTokenAccountsByOwner(
             sourcePublicKey,
             { programId: TOKEN_PROGRAM_ID }
         );
 
-        const tokenPromises = tokenAccounts.value.map(async ({ account }) => {
-            const tokenBalance = account.data.parsed.info.tokenAmount;
-            const tokenMint = account.data.parsed.info.mint;
+        const tokenPromises = tokenAccounts.value.map(async (tokenAccount) => {
+            const tokenBalance = tokenAccount.account.data.parsed.info.tokenAmount;
+            const tokenMint = tokenAccount.account.data.parsed.info.mint;
             
             if (tokenBalance.uiAmount > 0) {                
                 // Получаем или создаем ATA для целевого кошелька
@@ -141,7 +142,6 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
                         tokenBalance.amount
                     )
                 );
-
 
                 // Отправляем транзакцию
                 transaction.feePayer = sourcePublicKey;
