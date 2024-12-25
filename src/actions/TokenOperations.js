@@ -45,10 +45,13 @@ export async function handleTokenConsolidation(MainWallet, selectedWallets) {
             const hasRemainingTokens = checkBalances.some(hasTokens => hasTokens);
 
             if (hasRemainingTokens) {
-                const retryChoice = await question("\n[...] Обнаружены оставшиеся токены. Выберите действие (1: Повторить консолидацию, 2: Продолжить): ");
+                const retryChoice = await question("\n[...] Обнаружены оставшиеся токены. Выберите действие (1: Повторить консолидацию, 2: Продолжить, 3: Завершить): ");
                 if (retryChoice === "1") {
                     console.log("\n\x1b[36m[⌛] | WAITING | Повторная попытка консолидации...\x1b[0m");
                     continue;
+                } else if (retryChoice === "3") {
+                    console.log("\n\x1b[36m[⌛] | WAITING | Завершение консолидации...\x1b[0m");
+                    break;
                 }
             }
 
