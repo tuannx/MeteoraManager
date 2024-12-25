@@ -51,7 +51,7 @@ export async function handlePoolCheck() {
                     'ОБЪЁМ 5м / 1ч': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
                     'БИНЫ': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
                     'ФИСЫ %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
-                    'ФИСЫ 5м/1ч': calculateFees(pool),
+                    'ФИСЫ 5м/1ч НА 100$': calculateFees(pool),
                     'ФИСЫ 24ч': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'Н/Д'
                 }));
 
