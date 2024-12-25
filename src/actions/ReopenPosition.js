@@ -4,6 +4,7 @@ import { question } from '../utils/question.js';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { processWallet, processRemoveLiquidity } from '../services/position.service.js';
+import { strategyType } from '../utils/logger.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -27,6 +28,8 @@ export async function handleReopenPosition(selectedWallets) {
         if (positionType === "2") {
             solAmount = await question("\n[...] Введите новый размер позиции в SOL (например, 0.1): ");
         }
+
+        const strategy = await strategyType();
 
         // Проверяем существующие позиции
         console.log("\n\x1b[36m[⌛] | WAITING | Проверяем текущие позиции...\x1b[0m");
@@ -78,9 +81,9 @@ export async function handleReopenPosition(selectedWallets) {
         const openPromises = selectedWallets.map(async wallet => {
             try {
                 if (positionType === "1") {
-                    await processCreateTokenPosition(wallet, validPoolAddress);
+                    await processCreateTokenPosition(wallet, validPoolAddress, strategy);
                 } else {
-                    await processWallet(wallet, validPoolAddress, solAmount);
+                    await processWallet(wallet, validPoolAddress, solAmount, strategy);
                 }
                 await delay(7000);
                 
@@ -129,7 +132,7 @@ export async function handleReopenPosition(selectedWallets) {
             } else if (action === "2") {
                 const retryPromises = walletsWithoutPosition.map(async wallet => {
                     try {
-                        await processWallet(wallet, validPoolAddress, solAmount);
+                        await processWallet(wallet, validPoolAddress, solAmount, strategy);
                         await delay(5000);
                         
                         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));

@@ -3,11 +3,12 @@ import { processWallet } from '../services/position.service.js';
 import { walletInfo } from '../services/wallet.service.js';
 import { getFullPosition } from '../utils/GetPosition.js';
 import { question } from '../utils/question.js';
+import { strategyType } from '../utils/logger.js';
 import bs58 from 'bs58';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress, solAmount) {
+async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress, solAmount, strategy = '2') {
     if (walletsWithoutPosition.length === 0) {
         return [];
     }
@@ -31,7 +32,7 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
         await Promise.all(retryPromises);
         
         if (remainingWallets.length > 0) {
-            return await handleWalletsWithoutPosition(remainingWallets, poolAddress, solAmount);
+            return await handleWalletsWithoutPosition(remainingWallets, poolAddress, solAmount, strategy);
         } else {
             console.log("\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Все позиции успешно проверены\x1b[0m");
             return [];
@@ -39,7 +40,7 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
     } else if (action === "2") {
         const retryPromises = walletsWithoutPosition.map(async wallet => {
             try {
-                await processWallet(wallet, poolAddress, solAmount);
+                await processWallet(wallet, poolAddress, solAmount, strategy);
                 await delay(7000);
                 
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
@@ -68,6 +69,7 @@ export async function handleOpenPosition(selectedWallets, predefinedPool = null,
         
         const solAmount = predefinedAmount || await question("\n[...] Введите размер позиции в SOL (например, 0.1): ");
         const poolAddress = predefinedPool || await question("\n[...] Введите адрес пула: ");
+        const strategy = await strategyType();
         
         try {
             new PublicKey(poolAddress);
@@ -81,7 +83,7 @@ export async function handleOpenPosition(selectedWallets, predefinedPool = null,
         // Добавляем задержку между транзакциями
         const openPromises = selectedWallets.map(async wallet => {
             try {
-                await processWallet(wallet, poolAddress, solAmount);
+                await processWallet(wallet, poolAddress, solAmount, strategy);
                 await delay(7000); // 7 секунд задержки
                 
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
@@ -107,7 +109,7 @@ export async function handleOpenPosition(selectedWallets, predefinedPool = null,
             );
             
             // Сохраняем результат обработки
-            finalWalletsWithoutPosition = await handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress, solAmount);
+            finalWalletsWithoutPosition = await handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress, solAmount, strategy);
         }
 
         console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Открытие позиций завершено\x1b[0m`);

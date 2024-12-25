@@ -7,10 +7,11 @@ import BN from 'bn.js';
 import { modifyPriorityFeeIx, consolidateTokens } from './utils.service.js';
 import { getPositions, getFullPosition } from '../utils/GetPosition.js';
 import { sellAllTokens } from './jupiter.service.js';
-import { TOTAL_RANGE_INTERVAL, connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { TOTAL_RANGE_INTERVAL, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 import { getTokenBalance } from '../utils/getBalance.js';
+import { displayPositionsTable } from "./wallet.service.js";
 
-export async function createPosition(poolAddress, user, amountInLamports) {
+export async function createPosition(poolAddress, user, amountInLamports, strategy = '2') {
     try {
         const conn = await getConnection();
         const dlmmPool = await DLMM.create(conn, poolAddress);
@@ -31,7 +32,7 @@ export async function createPosition(poolAddress, user, amountInLamports) {
             strategy: {
                 maxBinId,
                 minBinId,
-                strategyType: StrategyType.BidAskImBalanced,
+                strategyType: strategy === '1' ? StrategyType.SpotImBalanced : StrategyType.BidAskImBalanced,
             },
         });
 
@@ -193,7 +194,7 @@ async function sellTokensWithRetries(wallet, maxAttempts = 3) {
     return hasTokens;
 }
 
-export async function autoCheckPositions(wallets, action, poolAddress) {    
+export async function autoCheckPositions(wallets, action, poolAddress, strategy = '2') {    
     let validPoolAddress;
     try {
         validPoolAddress = new PublicKey(poolAddress.trim());
@@ -356,7 +357,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
                                 
                                 try {
                                     console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на открытие позиции в токенах\x1b[0m`);
-                                    await processCreateTokenPosition(wallet, poolAddress);
+                                    await processCreateTokenPosition(wallet, poolAddress, strategy);
                                     await new Promise(resolve => setTimeout(resolve, 5000));
                                     
                                     // Проверяем, открылась ли позиция
@@ -447,7 +448,7 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
                                                 
                                                 try {
                                                     console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на открытие позиции в токенах\x1b[0m`);
-                                                    await processCreateTokenPosition(wallet, poolAddress);
+                                                    await processCreateTokenPosition(wallet, poolAddress, strategy);
                                                     await new Promise(resolve => setTimeout(resolve, 5000));
                                                     
                                                     let fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
@@ -490,12 +491,12 @@ export async function autoCheckPositions(wallets, action, poolAddress) {
     }
 }
 
-export async function processWallet(walletData, poolAddress, solAmount) {
+export async function processWallet(walletData, poolAddress, solAmount, strategy = '2') {
     try {
         await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(walletData.privateKey)));
-        const amountInLamports = parseFloat(solAmount) * LAMPORTS_PER_SOL;        
-        await createPosition(new PublicKey(poolAddress), user, amountInLamports);
+        const amountInLamports = parseFloat(solAmount) * LAMPORTS_PER_SOL;  
+        await createPosition(new PublicKey(poolAddress), user, amountInLamports, strategy);
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при открытии позиции: ${error.message}\x1b[0m`);
     }
@@ -603,12 +604,14 @@ export async function processClaimRewards(wallets, poolAddress) {
         await Promise.all(claimRewardsPromises);
         
         console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Клейм фисов завершен\x1b[0m`);
+
+        await displayPositionsTable(wallets, true);
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при клейме фисов: ${error.message}\x1b[0m`);
     }
 }
 
-export async function createTokenPosition(poolAddress, user) {
+export async function createTokenPosition(poolAddress, user, strategy = '2') {
     try {
         const conn = await getConnection();
         const dlmmPool = await DLMM.create(conn, poolAddress);
@@ -640,7 +643,7 @@ export async function createTokenPosition(poolAddress, user) {
             strategy: {
                 maxBinId,
                 minBinId,
-                strategyType: StrategyType.BidAskImBalanced,
+                strategyType: strategy === '1' ? StrategyType.SpotImBalanced : StrategyType.BidAskImBalanced,
             },
         });
 
@@ -662,11 +665,11 @@ export async function createTokenPosition(poolAddress, user) {
     }
 }
 
-export async function processCreateTokenPosition(walletData, poolAddress) {
+export async function processCreateTokenPosition(walletData, poolAddress, strategy = '2') {
     try {
         await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(walletData.privateKey)));        
-        await createTokenPosition(new PublicKey(poolAddress), user);
+        await createTokenPosition(new PublicKey(poolAddress), user, strategy);
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при открытии токен позиции: ${error.message}\x1b[0m`);
         throw error;

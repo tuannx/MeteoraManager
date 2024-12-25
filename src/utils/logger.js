@@ -43,9 +43,21 @@ export async function displayLogo() {
                                                                ███    ███ \x1b[0m
 
 \x1b[33m=================================================================
-                Created with ❤️ by SECTOR | @sectordot
+                Created by SECTOR | @sectordot
                 TG: https://t.me/sectormoves
 =================================================================\x1b[0m
 
 `);
+}
+
+export async function strategyType() {
+    console.log('\n[...] Выберите стратегию: ');
+    console.log('1. SPOT');
+    console.log('2. BIDASK');
+    const strategyType = await question("\n[...] Введите номер стратегии: ");
+    if (strategyType === '1' || strategyType === '2') {
+        return strategyType;
+    } else {
+        throw new Error('[!] [strategyType] Стратегия не найдена');
+    }
 }

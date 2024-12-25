@@ -1,11 +1,11 @@
 import { getPoolsInfo } from '../services/pool.service.js';
 import { question } from '../utils/question.js';
 import { formatNumber } from '../services/utils.service.js';
-import { selectWallets } from '../utils/logger.js';
+import { selectWallets, strategyType } from '../utils/logger.js';
 import { WALLETS } from '../config/index.js';
-import { logWallets } from '../utils/logger.js';
 import { processWallet } from '../services/position.service.js';
 import { PublicKey } from '@solana/web3.js';
+import { displayPositionsTable } from '../services/wallet.service.js';
 
 function calculateLiquidityStatus(pool) {
     return Number(pool.volume.h1) >= Number(pool.liquidity) ? '✅' : '❌';
@@ -51,7 +51,7 @@ export async function handlePoolCheck() {
                     'ОБЪЁМ 5м / 1ч': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
                     'БИНЫ': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
                     'ФИСЫ %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
-                    'ФИСЫ 5м/1ч НА 100$': calculateFees(pool),
+                    'ФИСЫ 5м/1ч': calculateFees(pool),
                     'ФИСЫ 24ч': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'Н/Д'
                 }));
 
@@ -97,7 +97,8 @@ async function handleOpenPositionFromCheck(poolAddress) {
     const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
     const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
     const solAmount = await question("\n[...] Введите размер позиции в SOL: ");
-    const promises = selectedWallets.map(wallet => processWallet(wallet, poolAddress, solAmount));
+    const strategy = await strategyType();
+    const promises = selectedWallets.map(wallet => processWallet(wallet, poolAddress, solAmount, strategy));
     await Promise.all(promises);
     console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Открытие позиций завершено\x1b[0m`);
     await displayPositionsTable(selectedWallets, true);
