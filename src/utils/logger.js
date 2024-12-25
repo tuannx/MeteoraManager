@@ -1,5 +1,6 @@
 import { WALLETS } from '../config/index.js';
 import { getSolBalance } from './getBalance.js';
+import { question } from './question.js';
 
 export async function logWallets() {
     console.log("\nДОСТУПНЫЕ КОШЕЛЬКИ: \n=========================");
