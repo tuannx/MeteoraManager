@@ -51,7 +51,7 @@ export async function handleTokenConsolidation(MainWallet, selectedWallets) {
                     continue;
                 } else if (retryChoice === "3") {
                     console.log("\n\x1b[36m[⌛] | WAITING | Завершение консолидации...\x1b[0m");
-                    break;
+                    process.exit(1);
                 }
             }
 
