@@ -10,7 +10,7 @@ export async function logWallets() {
     }
 }
 
-export async function selectWallets(WALLETS) {
+export async function selectWallets() {
     await logWallets();
 
     const walletInput = await question("\n[...] Введите номера кошельков через запятую (1,2,3) или '0' для всех: ");

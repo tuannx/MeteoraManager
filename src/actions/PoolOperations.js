@@ -96,9 +96,10 @@ export async function handlePoolCheck() {
 async function handleOpenPositionFromCheck(poolAddress) {
     const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
     const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
+    console.log(selectedWallets);
     const solAmount = await question("\n[...] Введите размер позиции в SOL: ");
     const promises = selectedWallets.map(wallet => processWallet(wallet, poolAddress, solAmount));
     await Promise.all(promises);
     console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Открытие позиций завершено\x1b[0m`);
-    process.exit(0);
+    await displayPositionsTable(selectedWallets, true);
 } 
