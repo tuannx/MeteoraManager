@@ -1,7 +1,7 @@
 import { getPoolsInfo } from '../services/pool.service.js';
 import { question } from '../utils/question.js';
 import { formatNumber } from '../services/utils.service.js';
-import { selectWallets } from '../utils/wallet.js';
+import { selectWallets } from '../utils/logger.js';
 import { WALLETS } from '../config/index.js';
 import { logWallets } from '../utils/logger.js';
 import { processWallet } from '../services/position.service.js';
