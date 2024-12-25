@@ -6,7 +6,7 @@ import { question } from './src/utils/question.js';
 import { ACTIONS, WALLET_ACTIONS, CONSOLIDATION_ACTIONS, ADD_LIQUIDITY_ACTIONS } from './src/actions/index.js';
 import { displayPositionsTable } from './src/services/wallet.service.js';
 import * as actions from './src/actions/index.js';
-import { displayLogo, selectWallets } from './src/utils/logger.js';
+import { displayLogo, selectWallets, strategyType } from './src/utils/logger.js';
 
 const ACTION_DESCRIPTIONS = {
     [ACTIONS.ADD_LIQUIDITY]: "Добавить ликвидность",
@@ -73,13 +73,13 @@ async function main() {
             console.log(`\x1b[36m-+-\x1b[0m 1: Закрыть позиции и продать токены`);
             console.log(`\x1b[36m-+-\x1b[0m 2: Переоткрыть позиции в токенах`);
             const autoCheckAction = await question("\n[...] Выберите действие (1-2): ");
-
+            const strategy = await strategyType();
             const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
             const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
             
             const poolAddress = await question("\n[...] Введите адрес пула: ");
 
-            await handler(selectedWallets, autoCheckAction, poolAddress);
+            await handler(selectedWallets, autoCheckAction, poolAddress, strategy);
             return;
         }
 
