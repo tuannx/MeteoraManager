@@ -39,12 +39,15 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
         }
     } else if (action === "2") {
         const retryPromises = walletsWithoutPosition.map(async wallet => {
-            try {
-                await processWallet(wallet, poolAddress, solAmount, strategy);
-                await delay(7000);
-                
+            try {                
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
-                const position = await getFullPosition(user, new PublicKey(poolAddress));
+                let position = await getFullPosition(user, new PublicKey(poolAddress));
+                if (!position) {
+                    await processWallet(wallet, poolAddress, solAmount, strategy);
+                    position = await getFullPosition(user, new PublicKey(poolAddress));
+                } else {
+                    console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] | Позиция уже создана\x1b[0m`);
+                }
                 
                 if (!position) {
                     console.log(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Позиция не создана при повторной попытке\x1b[0m`);

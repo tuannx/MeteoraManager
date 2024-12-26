@@ -112,52 +112,6 @@ export async function removeLiquidity(poolAddress, user) {
     }
 }
 
-async function consolidateWithRetries(sourceWallets, targetWallet, maxAttempts = 3) {
-    let attempt = 0;
-    let remainingWallets = [...sourceWallets];
-
-    while (remainingWallets.length > 0 && attempt < maxAttempts) {
-        attempt++;
-        if (attempt > 1) {
-            console.log(`\n\x1b[36m[⌛] | WAITING | Попытка ${attempt} консолидации токенов...\x1b[0m`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-
-        const newRemainingWallets = [];
-        
-        const promises = remainingWallets.map(async (sourceWallet) => {
-            const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(sourceWallet.privateKey)));
-            try {
-                const conn = await getConnection();
-                await consolidateTokens(sourceWallet, targetWallet);
-                await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 5000) });
-                
-                // Проверяем, остались ли токены
-                const accounts = await conn.getParsedTokenAccountsByOwner(
-                    user.publicKey,
-                    { programId: TOKEN_PROGRAM_ID }
-                );
-                const hasRemainingTokens = accounts.value.some(acc => 
-                    acc.account.data.parsed.info.tokenAmount.uiAmount > 0
-                );
-                
-                if (hasRemainingTokens) {
-                    console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Остались токены, добавляем в очередь\x1b[0m`);
-                    newRemainingWallets.push(sourceWallet);
-                }
-            } catch (error) {
-                console.error(`\x1b[31m~~~ [!] | ERROR | [${user.publicKey.toString().slice(0, 4)}...] Ошибка консолидации: ${error.message}\x1b[0m`);
-                newRemainingWallets.push(sourceWallet);
-            }
-        });
-        await Promise.all(promises);
-
-        remainingWallets = newRemainingWallets;
-    }
-
-    return remainingWallets;
-}
-
 async function sellTokensWithRetries(wallet, tokenAddress, maxAttempts = 3) {
     let attempt = 0;
     let hasTokens = true;
@@ -229,7 +183,6 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                         const tokenName = position.poolInfo.name;
                         tokenAddress = position.poolInfo.x_mint;
                         const positionSolValue = position.amounts.positionToken2;
-                        const activeBinID = position.binID.current;
                         
                         // Добавляем информацию о позиции в общий массив
                         positionsInfo.push({
@@ -317,9 +270,13 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
 
                         // Консолидация и продажа только если все позиции закрыты
                         if (remainingWallets.length === 0) {
-                            const targetWallet = wallets[0];
                             console.log(`\n\x1b[36m[⌛] | WAITING | Переходим к продаже токенов\x1b[0m`);
-                            await sellTokensWithRetries(targetWallet, tokenAddress)
+                            // Продаем токены с каждого кошелька
+                            const sellPromises = affectedWallets.map(async (wallet) => {
+                                await sellTokensWithRetries(wallet, tokenAddress);
+                                await new Promise(resolve => setTimeout(resolve, 2000));
+                            });
+                            await Promise.all(sellPromises);
                         } else {
                             console.log(`\x1b[31m~~~ [!] | ERROR | Не удалось закрыть все позиции, попробуйте вручную (Через главное меню)\x1b[0m`);
                             process.exit(0);
@@ -498,15 +455,14 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                     }
                 }
             } else {
-                
+                if (positionsInfo.length === 0) {
+                    console.log(`\n\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | Позиций не найдено\x1b[0m\n`);
+                    process.exit(0);
+                }
                 console.log(`\n\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | Все позиции в норме\x1b[0m\n`);
             }
-            const waitTime = 20;
-            for (let i = waitTime; i > 0; i--) {
-                process.stdout.write(`\r\x1b[36m[⌛] | WAITING | Следующая проверка через ${i} секунд...\x1b[0m`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            process.stdout.write('\r' + ' '.repeat(100) + '\r'); // Очищаем строку
+            console.log(`\n\x1b[36m[⌛] | WAITING | Следующая проверка через 20 секунд...\x1b[0m`);
+            await new Promise(resolve => setTimeout(resolve, 20000));
             
         } catch (error) {
             console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при проверке позиций: ${error.message}\x1b[0m`);
