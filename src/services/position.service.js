@@ -239,7 +239,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                             'Нижний bin': position.binID.lower
                         });
                         
-                        if (positionSolValue === 0 || position.binID.current === activeBinID) {
+                        if (positionSolValue === 0 || position.binID.current === position.binID.lower) {
                             await displayLogo();
                             await console.log("\n\x1b[36m[!] | INFO | Для остановки мониторинга нажмите Ctrl+C\x1b[0m\n");
                             console.log(`\n\x1b[33m• Позиция требует закрытия:\x1b[0m`);
