@@ -214,6 +214,8 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
         try {
             const poolsToClose = new Set();
             const walletsWithPositions = new Map();
+            const positionsInfo = []; // Создаем массив для всех позиций
+
             // Проверяем позиции всех кошельков
             const promises = wallets.map(async wallet => {
                 await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
@@ -226,9 +228,9 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                     if (position) {
                         const tokenName = position.poolInfo.name;
                         tokenAddress = position.poolInfo.x_mint;
-                        const positionsInfo = [];
                         const positionSolValue = position.amounts.positionToken2;
                         
+                        // Добавляем информацию о позиции в общий массив
                         positionsInfo.push({
                             'Кошелек': wallet.description.slice(0, 4) + '...',
                             'SOL value': positionSolValue,
@@ -262,6 +264,13 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
             });
             await Promise.all(promises);
             
+            // Выводим информацию о всех позициях
+            if (positionsInfo.length > 0) {
+                await displayLogo();
+                await console.log("\n\x1b[36m[!] | INFO | Для остановки мониторинга нажмите Ctrl+C\x1b[0m\n");
+                console.table(positionsInfo);
+            }
+
             if (poolsToClose.size > 0) {
                 for (const poolAddress of poolsToClose) {
                     const affectedWallets = walletsWithPositions.get(poolAddress);
