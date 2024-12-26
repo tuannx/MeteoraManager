@@ -6,6 +6,7 @@ import { WALLETS } from '../config/index.js';
 import { processWallet } from '../services/position.service.js';
 import { PublicKey } from '@solana/web3.js';
 import { displayPositionsTable } from '../services/wallet.service.js';
+import { returnToMainMenu } from '../utils/mainMenuReturn.js';
 
 function calculateLiquidityStatus(pool) {
     return Number(pool.volume.h1) >= Number(pool.liquidity) ? '✅' : '❌';
@@ -61,6 +62,7 @@ export async function handlePoolCheck() {
                 console.log("1: Открыть позицию");
                 console.log("2: Продолжить проверку");
                 console.log("3: Завершить");
+                console.log("4: Вернуться в главное меню");
                 
                 const choice = await question("\n[...] Ваш выбор (1-3): ");
                 
@@ -80,6 +82,11 @@ export async function handlePoolCheck() {
                 } else if (choice === "3") {
                     continueChecking = false;
                     process.exit();
+                } else if (choice === "4") {
+                    returnToMainMenu();
+                } else {
+                    console.error(`\x1b[31m~~~ [!] | ERROR | Неверный выбор\x1b[0m\n`);
+                    continueChecking = true;
                 }
             }
         } catch (error) {
@@ -87,7 +94,7 @@ export async function handlePoolCheck() {
             const choice = await question("\n[...] Продолжить проверку? (1: Да, 2: Нет): ");
             if (choice === "2") {
                 continueChecking = false;
-                process.exit();
+                returnToMainMenu();
             }
         }
     }

@@ -3,8 +3,9 @@ import { getFullPosition } from '../utils/GetPosition.js';
 import { question } from '../utils/question.js';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
-import { processWallet, processRemoveLiquidity } from '../services/position.service.js';
+import { processWallet, processRemoveLiquidity, processCreateTokenPosition } from '../services/position.service.js';
 import { strategyType } from '../utils/logger.js';
+import { returnToMainMenu } from '../utils/mainMenuReturn.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -21,7 +22,8 @@ export async function handleReopenPosition(selectedWallets) {
         try {
             validPoolAddress = new PublicKey(poolAddress.trim());
         } catch (error) {
-            throw new Error(`\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула: ${error.message}\x1b[0m`);
+            console.error(`\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула: ${error.message}\x1b[0m\n`);
+            returnToMainMenu();
         }
 
         let solAmount;
@@ -49,9 +51,9 @@ export async function handleReopenPosition(selectedWallets) {
             const removePromises = walletsWithPosition.map(async wallet => {
                 try {
                     await processRemoveLiquidity(wallet, validPoolAddress);
-                    await delay(5000);
                 } catch (error) {
                     console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка при закрытии позиции: ${error.message}\x1b[0m`);
+                    returnToMainMenu();
                 }
             });
             await Promise.all(removePromises);
@@ -84,9 +86,7 @@ export async function handleReopenPosition(selectedWallets) {
                     await processCreateTokenPosition(wallet, validPoolAddress, strategy);
                 } else {
                     await processWallet(wallet, validPoolAddress, solAmount, strategy);
-                }
-                await delay(7000);
-                
+                }                
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
                 const position = await getFullPosition(user, validPoolAddress);
                 
@@ -110,7 +110,7 @@ export async function handleReopenPosition(selectedWallets) {
 
             console.log("\n\x1b[36m[!] | ADVICE | Попробуйте перепроверить позиции 1-2 раза, если не появились позиции, то повторно добавьте ликвидность\x1b[0m\n");
             
-            const action = await question("\nВыберите действие:\n1. Перепроверить позиции\n2. Повторно добавить ликвидность\n3. Пропустить\nВаш выбор (1-3): ");
+            const action = await question("\nВыберите действие:\n1. Перепроверить позиции\n2. Повторно добавить ликвидность\n3. Пропустить эти кошельки\n4. Вернуться в главное меню\nВаш выбор (1-4): ");
             
             if (action === "1") {
                 console.log("\n\x1b[36m[⌛] | WAITING | Ожидаем 2 секунды перед проверкой...\x1b[0m");
@@ -132,11 +132,14 @@ export async function handleReopenPosition(selectedWallets) {
             } else if (action === "2") {
                 const retryPromises = walletsWithoutPosition.map(async wallet => {
                     try {
-                        await processWallet(wallet, validPoolAddress, solAmount, strategy);
-                        await delay(5000);
-                        
                         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
-                        const position = await getFullPosition(user, validPoolAddress);
+                        let position = await getFullPosition(user, validPoolAddress);
+                        if (position) {
+                            console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] | Позиция уже создана\x1b[0m`);
+                            return null;
+                        }
+                        await processWallet(wallet, validPoolAddress, solAmount, strategy);                        
+                        position = await getFullPosition(user, validPoolAddress);
                         
                         if (!position) {
                             console.log(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Позиция не создана при повторной попытке\x1b[0m`);
@@ -153,8 +156,10 @@ export async function handleReopenPosition(selectedWallets) {
 
                 const results = await Promise.all(retryPromises);
                 finalWalletsWithoutPosition = results.filter(wallet => wallet !== null);
-            } else {
+            } else if (action === "3") {
                 finalWalletsWithoutPosition = walletsWithoutPosition;
+            } else {
+                returnToMainMenu();
             }
         }
 
@@ -172,11 +177,9 @@ export async function handleReopenPosition(selectedWallets) {
             );
         }
 
-        await displayPositionsTable(selectedWallets, false);
-        process.exit(0);
-        
+        await displayPositionsTable(selectedWallets, true);        
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при переоткрытии позиции: ${error.message}\x1b[0m`);
-        process.exit(1);
+        returnToMainMenu();
     }
 }

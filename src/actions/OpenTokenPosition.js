@@ -4,6 +4,7 @@ import { strategyType } from '../utils/logger.js';
 import { getFullPosition } from '../utils/GetPosition.js';
 import { question } from '../utils/question.js';
 import bs58 from 'bs58';
+import { returnToMainMenu } from '../utils/mainMenuReturn.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -111,10 +112,10 @@ export async function handleOpenTokenPosition(selectedWallets, predefinedPool = 
         console.log(`  └─ \x1b[90mУспешно:\x1b[0m ${selectedWallets.length - (finalWalletsWithoutPosition?.length || 0)}`);
         console.log(`  └─ \x1b[90mТребуют внимания:\x1b[0m ${finalWalletsWithoutPosition?.length || 0}`);
         
-        process.exit(0);
+        returnToMainMenu();
         
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при открытии позиции: ${error.message}\x1b[0m`);
-        process.exit(1);
+        returnToMainMenu();
     }
 }

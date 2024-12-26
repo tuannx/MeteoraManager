@@ -2,7 +2,7 @@ import pkg from '@solana/web3.js';
 const { Keypair, LAMPORTS_PER_SOL } = pkg;
 import bs58 from 'bs58';
 import { getTokenInfoByTokenAddress, formatNumber, getSolPrice } from './utils.service.js';
-import { connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
 import { question } from '../utils/question.js';
 import { getPositions } from '../utils/GetPosition.js';
 import { handleRemovePosition } from '../actions/RemovePosition.js';
@@ -10,19 +10,14 @@ import { handleTokenConsolidation } from '../actions/TokenOperations.js';
 import { handleSolConsolidation, handleSolDistribution } from '../actions/SolOperations.js';
 import { processClaimRewards } from './position.service.js';
 import { displayLogo } from '../utils/logger.js';
+import { returnToMainMenu } from '../utils/mainMenuReturn.js';
 
 export async function displayPositionsTable(wallets,positionCheck = true) {
     const tableData = [];
     const solPrice = await getSolPrice();
-    
-    // Добавляем переменные для подсчета общих сумм
     let totalPositionsValue = 0;
     let totalFeesValue = 0;
-    // Создаем Map для хранения пар адрес:имя
     const uniquePools = new Map();
-
-    console.log("\n\x1b[36m[⌛] WAITING | Получение информации о позициях...\x1b[0m");
-
     const promises = wallets.map(async (wallet) => {
         await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
         const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
@@ -30,7 +25,6 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
         
         if (positions && positions.length > 0) {
             for (const position of positions) {
-                // Сохраняем адрес и имя пула в Map
                 uniquePools.set(position.poolAddress, position.poolInfo.name);
                 
                 const token1Amount = position.amounts.token1;
@@ -47,12 +41,8 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
                 const positionToken1USD = position.poolInfo.currentPrice * positionToken1 * solPrice;
                 const positionToken2USD = solPrice * positionToken2;
                 const totalPositionUSD = positionToken1USD + positionToken2USD;
-
-                // Добавляем к общим суммам
                 totalPositionsValue += totalPositionUSD;
                 totalFeesValue += totalFeeUSD;
-
-                // Расчет процента для token price
                 const currentTokenPrice = 1 / Number(position.binPrices.current);
                 const upperTokenPrice = 1 / Number(position.binPrices.upper);
                 const percentFromCurrent = ((upperTokenPrice - currentTokenPrice) / currentTokenPrice * 100).toFixed(2);
@@ -96,7 +86,7 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
 `);
         });
         if (positionCheck) {
-            const Choice = await question("\n[...] Выберите действие: \n1: Закрыть позиции\n2: Повторная проверка\n3: Клейм комсы\n4: Выйти\nВыберите: ");
+            const Choice = await question("\n[...] Выберите действие: \n1: Закрыть позиции\n2: Повторная проверка\n3: Клейм комсы\n4: Вернуться в главное меню\nВыберите: ");
             if (Choice === '1') {
                 await handleRemovePosition(wallets);
             } else if (Choice === '2') {
@@ -105,12 +95,12 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
                 const poolAddress = await question("\n[...] Введите адрес пула: ");
                 await processClaimRewards(wallets, poolAddress);
             } else {
-                process.exit(1);
+                returnToMainMenu();
             }
         }
     } else {
         console.log("\n[!] Нет активных позиций для отображения");
-        process.exit(0);
+        returnToMainMenu();
     }
 }
 
@@ -198,7 +188,7 @@ export async function walletInfo(wallets, positionCheck = true) {
         
 
         // Добавляем выбор действий
-        const choice = await question("\n[...] Выберите действие:\n1: Консолидировать токены\n2: Консолидировать SOL\n3: Распределить SOL\n4: Завершить\nВыберите: ");
+        const choice = await question("\n[...] Выберите действие:\n1: Консолидировать токены\n2: Консолидировать SOL\n3: Распределить SOL\n4: Вернуться в главное меню\nВыберите: ");
 
         switch (choice) {
             case '1':
@@ -212,11 +202,11 @@ export async function walletInfo(wallets, positionCheck = true) {
                 break;
             case '4':
                 console.log("\n=== Работа завершена");
-                process.exit(0);
+                returnToMainMenu();
                 break;
             default:
                 console.log("\n[!] Некорректный выбор");
-                process.exit(1);
+                returnToMainMenu();
         }
     }
 }

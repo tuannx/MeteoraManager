@@ -102,8 +102,13 @@ const connectionPool = new ConnectionPool(
 export const connection = connectionPool.getConnection();
 export const getConnection = () => connectionPool.getConnection();
 export const TOTAL_RANGE_INTERVAL = 68;
+
 export const MAX_PRIORITY_FEE = 1000000;
 export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+
+// Конфигурация для свапов юпитера
+export const SLIPPAGE_BPS = 5 * 100; // 5%
+export const PRIORITY_FEE = 0.002 * 1000000000; // 0.002 SOL
 
 export const WALLETS = {
     "1": {

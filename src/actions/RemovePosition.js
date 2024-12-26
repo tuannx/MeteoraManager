@@ -4,6 +4,7 @@ import { Keypair } from "@solana/web3.js";
 import bs58 from 'bs58';
 import { getFullPosition } from '../utils/GetPosition.js';
 import { processRemoveLiquidity } from '../services/position.service.js';
+import { returnToMainMenu } from '../utils/mainMenuReturn.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -53,14 +54,16 @@ export async function handleRemovePosition(selectedWallets, predefinedPool = nul
     try {        
         const poolAddress = predefinedPool || await question("\n[...] Введите адрес пула для удаления позиции: ");
         if (!poolAddress || poolAddress.trim() === '') {
-            throw new Error("Адрес пула не может быть пустым");
+            console.error(`\x1b[31m~~~ [!] | ERROR | Адрес пула не может быть пустым\x1b[0m\n`);
+            returnToMainMenu();
         }
 
         let validPoolAddress;
         try {
             validPoolAddress = new PublicKey(poolAddress.trim());
         } catch (error) {
-            throw new Error(`Некорректный адрес пула: ${error.message}`);
+            console.error(`\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула: ${error.message}\x1b[0m\n`);
+            returnToMainMenu();
         }
 
         const walletsWithPosition = [];
@@ -79,8 +82,7 @@ export async function handleRemovePosition(selectedWallets, predefinedPool = nul
 
         if (walletsWithPosition.length === 0) {
             console.log(`\n\x1b[31m~~~ [!] | ERROR | Нет кошельков с активными позициями в данном пуле\x1b[0m`);
-            process.exit(0);
-            return;
+            returnToMainMenu();
         }
 
         // Удаляем ликвидность
@@ -121,7 +123,7 @@ export async function handleRemovePosition(selectedWallets, predefinedPool = nul
         console.log(`  └─ \x1b[90mУспешно удалено:\x1b[0m ${walletsWithPosition.length - (remainingWallets?.length || 0)}`);
         console.log(`  └─ \x1b[90mТребуют внимания:\x1b[0m ${remainingWallets?.length || 0}`);
 
-        process.exit(0); // Добавляем выход после успешного завершения
+        returnToMainMenu();
 
     } catch (error) {
         if (error.message) {
@@ -129,6 +131,6 @@ export async function handleRemovePosition(selectedWallets, predefinedPool = nul
         } else {
             console.error(`\x1b[31m~~~ [!] | ERROR | Неизвестная ошибка при удалении позиции\x1b[0m`);
         }
-        process.exit(1); // Выход с кодом ошибки
+        returnToMainMenu();
     }
 } 

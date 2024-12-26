@@ -7,6 +7,7 @@ import { ACTIONS, WALLET_ACTIONS, CONSOLIDATION_ACTIONS, ADD_LIQUIDITY_ACTIONS }
 import { displayPositionsTable } from './src/services/wallet.service.js';
 import * as actions from './src/actions/index.js';
 import { displayLogo, selectWallets, strategyType } from './src/utils/logger.js';
+import { returnToMainMenu } from './src/utils/mainMenuReturn.js';
 
 const ACTION_DESCRIPTIONS = {
     [ACTIONS.ADD_LIQUIDITY]: "Добавить ликвидность",
@@ -15,6 +16,8 @@ const ACTION_DESCRIPTIONS = {
     [ACTIONS.WALLET_MENU]: "Кошельки",
     [ACTIONS.POOL_CHECK]: "Чекер пулов",
     [ACTIONS.AUTO_CHECK]: "Авточекер позиций",
+    [ACTIONS.SWAP_TOKENS]: "Свап",
+    [ACTIONS.EXIT]: "Завершить работу",
 };
 
 const WALLET_MENU_DESCRIPTIONS = {
@@ -29,7 +32,7 @@ const CONSOLIDATION_MENU_DESCRIPTIONS = {
     [CONSOLIDATION_ACTIONS.SOL_CONSOLIDATION]: "Консолидировать SOL",
 };
 
-async function main() {
+export async function main() {
     try {
         await displayLogo();
         console.log("\nДОСТУПНЫЕ ФУНКЦИИ: \n=========================");
@@ -37,8 +40,20 @@ async function main() {
             console.log(`\x1b[36m-+-\x1b[0m ${key}: ${value.toUpperCase()}`);
         });
 
-        const action = await question("\n[...] Выберите действие (1-6): ");
+        const action = await question("\n[...] Выберите действие (1-8): ");
         
+        if (action === ACTIONS.EXIT) {
+            console.log("\nЗавершение работы...");
+            process.exit(0);
+        }
+
+        if (action === ACTIONS.SWAP_TOKENS) {
+            const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
+            const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
+            await actions.handleSwapTokens(selectedWallets);
+            return;
+        }
+
         if (action === ACTIONS.ADD_LIQUIDITY) {
             console.log("\nВЫБЕРИТЕ ТИП ЛИКВИДНОСТИ:\n=========================");
             console.log(`\x1b[36m-+-\x1b[0m 1: В ТОКЕНАХ`);
@@ -63,21 +78,26 @@ async function main() {
         
         if (!handler) {
             console.log("~~~ [!] Эта функция находится в разработке");
-            return;
+            returnToMainMenu();
         }
 
         if (action === ACTIONS.AUTO_CHECK) {
+            let strategy;
             await displayLogo();
             await displayPositionsTable(Object.values(WALLETS), false);
             console.log("\nВЫБЕРИТЕ ДЕЙСТВИЕ ПРИ ВЫХОДЕ ИЗ РЕНЖА:\n=========================");
             console.log(`\x1b[36m-+-\x1b[0m 1: Закрыть позиции и продать токены`);
             console.log(`\x1b[36m-+-\x1b[0m 2: Переоткрыть позиции в токенах`);
             const autoCheckAction = await question("\n[...] Выберите действие (1-2): ");
-            const strategy = await strategyType();
+            if (autoCheckAction === "2") {
+                strategy = await strategyType();
+            } else {
+                strategy = "1";
+            }
             const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
             const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
             
-            const poolAddress = await question("\n[...] Введите адрес пула: ");
+            const poolAddress = await question("\n[...] Введите адрес пула, который хотите мониторить: ");
 
             await handler(selectedWallets, autoCheckAction, poolAddress, strategy);
             return;
@@ -158,6 +178,7 @@ function getActionHandler(action) {
         [ACTIONS.WALLET_MENU]: handleWalletMenu,
         [ACTIONS.POOL_CHECK]: actions.handlePoolCheck,
         [ACTIONS.AUTO_CHECK]: actions.handleAutoCheck,
+        [ACTIONS.SWAP_TOKENS]: actions.handleSwapTokens,
     };
     return handlers[action];
 }

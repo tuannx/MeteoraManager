@@ -2,7 +2,9 @@ import { ComputeBudgetProgram, PublicKey, Transaction, Keypair, SystemProgram, L
 import { createTransferInstruction, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { processSellAllTokens } from './position.service.js';
 import bs58 from 'bs58';
-import { connection, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { returnToMainMenu } from '../utils/mainMenuReturn.js';
+
 
 export const modifyPriorityFeeIx = (tx, newPriorityFee) => {
     for (let ix of tx.instructions) {
@@ -38,7 +40,8 @@ export const getTokenInfoByTokenAddress = async (tokenAddress) => {
         const data = await response.json();
         
         if (!data || !data.pairs || data.pairs.length === 0) {
-            throw new Error(`\x1b[31m~~~ [!] | ERROR | Нет данных о пулах для токена\x1b[0m`);
+            console.error(`\x1b[31m~~~ [!] | ERROR | Нет данных о пулах для токена\x1b[0m`);
+            returnToMainMenu();
         }
 
         // Сначала ищем пул Raydium с SOL
@@ -109,7 +112,7 @@ export const consolidateTokens = async (sourceWallet, targetWallet) => {
             const tokenBalance = tokenAccount.account.data.parsed.info.tokenAmount;
             const tokenMint = tokenAccount.account.data.parsed.info.mint;
             
-            if (tokenBalance.uiAmount > 0) {                
+            if (tokenBalance.uiAmount > 5) {                
                 // Получаем или создаем ATA для целевого кошелька
                 const targetATA = await getAssociatedTokenAddress(
                     new PublicKey(tokenMint),

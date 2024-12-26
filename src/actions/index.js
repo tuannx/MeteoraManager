@@ -8,6 +8,7 @@ export { handlePoolCheck } from './PoolOperations.js';
 export { handleAutoCheck } from './AutoChecker.js';
 export { handleSolDistribution, handleSolConsolidation } from './SolOperations.js';
 export { handleOpenTokenPosition } from './OpenTokenPosition.js';
+export { handleSwapTokens } from './SwapTokens.js';
 
 export const ACTIONS = {
     ADD_LIQUIDITY: '1',
@@ -15,7 +16,9 @@ export const ACTIONS = {
     REOPEN_POSITION: '3',
     WALLET_MENU: '4',
     POOL_CHECK: '5',
-    AUTO_CHECK: '6'
+    AUTO_CHECK: '6',
+    SWAP_TOKENS: '7',
+    EXIT: '8'
 };
 
 export const ADD_LIQUIDITY_ACTIONS = {
