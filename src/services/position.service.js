@@ -229,6 +229,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                         const tokenName = position.poolInfo.name;
                         tokenAddress = position.poolInfo.x_mint;
                         const positionSolValue = position.amounts.positionToken2;
+                        const activeBinID = position.binID.current;
                         
                         // Добавляем информацию о позиции в общий массив
                         positionsInfo.push({
@@ -238,7 +239,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                             'Нижний bin': position.binID.lower
                         });
                         
-                        if (positionSolValue === 0 || position.binID.current === position.binID.lower) {
+                        if (positionSolValue === 0 || position.binID.current === activeBinID) {
                             await displayLogo();
                             await console.log("\n\x1b[36m[!] | INFO | Для остановки мониторинга нажмите Ctrl+C\x1b[0m\n");
                             console.log(`\n\x1b[33m• Позиция требует закрытия:\x1b[0m`);
@@ -317,15 +318,8 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                         // Консолидация и продажа только если все позиции закрыты
                         if (remainingWallets.length === 0) {
                             const targetWallet = wallets[0];
-                            if (wallets.length > 1) {
-                                console.log(`\n\x1b[36m[⌛] | WAITING | Переходим к консолидации и продаже токенов\x1b[0m`);
-                                await consolidateWithRetries(affectedWallets, targetWallet);
-                                await sellTokensWithRetries(targetWallet, tokenAddress);
-                            } else {
-                                console.log(`\n\x1b[36m[⌛] | WAITING | Переходим к продаже токенов\x1b[0m`);
-                                await sellTokensWithRetries(targetWallet, tokenAddress);
-
-                            }
+                            console.log(`\n\x1b[36m[⌛] | WAITING | Переходим к продаже токенов\x1b[0m`);
+                            await sellTokensWithRetries(targetWallet, tokenAddress)
                         } else {
                             console.log(`\x1b[31m~~~ [!] | ERROR | Не удалось закрыть все позиции, попробуйте вручную (Через главное меню)\x1b[0m`);
                             process.exit(0);
