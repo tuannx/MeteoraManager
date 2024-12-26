@@ -108,7 +108,7 @@ export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9
 
 // Конфигурация для свапов юпитера
 export const SLIPPAGE_BPS = 5 * 100; // 5%
-export const PRIORITY_FEE = 0.002 * 1000000000; // 0.002 SOL
+export const PRIORITY_FEE = 0.0005 * 1000000000; // 0.0005 SOL
 
 export const WALLETS = {
     "1": {

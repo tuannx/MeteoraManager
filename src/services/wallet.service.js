@@ -9,8 +9,11 @@ import { handleRemovePosition } from '../actions/RemovePosition.js';
 import { handleTokenConsolidation } from '../actions/TokenOperations.js';
 import { handleSolConsolidation, handleSolDistribution } from '../actions/SolOperations.js';
 import { processClaimRewards } from './position.service.js';
-import { displayLogo } from '../utils/logger.js';
+import { WALLETS } from '../config/index.js';
+import { handleSwapTokens } from '../actions/SwapTokens.js';
+import { displayLogo, selectWallets } from '../utils/logger.js';
 import { returnToMainMenu } from '../utils/mainMenuReturn.js';
+
 
 export async function displayPositionsTable(wallets,positionCheck = true) {
     const tableData = [];
@@ -148,6 +151,7 @@ export async function walletInfo(wallets, positionCheck = true) {
                                 tableData.push({
                                     "Адрес кошелька": user.publicKey.toString().slice(0, 4) + '..',
                                     "Токен": tokenData.tokenSymbol,
+                                    "Адрес токена": tokenInfo.mint,
                                     "Количество": formatNumber(tokenAmount.uiAmount),
                                     "Цена": `$${tokenData.priceUSD}`,
                                     "Стоимость": `$${formatNumber(parseFloat(usdValue))}`
@@ -185,22 +189,26 @@ export async function walletInfo(wallets, positionCheck = true) {
 
     if (positionCheck) {
         console.log(`\n\x1b[36m-+-\x1b[0m ОБЩАЯ СТОИМОСТЬ ВСЕХ АКТИВОВ: \x1b[32m$${formatNumber(totalUsdValue)}\x1b[0m`);
-        
 
-        // Добавляем выбор действий
-        const choice = await question("\n[...] Выберите действие:\n1: Консолидировать токены\n2: Консолидировать SOL\n3: Распределить SOL\n4: Вернуться в главное меню\nВыберите: ");
+        // Обновленное меню действий
+        const choice = await question("\n[...] Выберите действие:\n1. Купить/продать токены\n2. Консолидировать токены\n3. Консолидировать SOL\n4. Распределить SOL\n5: Вернуться в главное меню\nВыберите: ");
 
         switch (choice) {
             case '1':
-                await handleTokenConsolidation(wallets[0], wallets);
+                const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
+                const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
+                await handleSwapTokens(selectedWallets);
                 break;
             case '2':
-                await handleSolConsolidation(wallets[0], wallets);
+                await handleTokenConsolidation(wallets[0], wallets);
                 break;
             case '3':
-                await handleSolDistribution(wallets[0], wallets);
+                await handleSolConsolidation(wallets[0], wallets);
                 break;
             case '4':
+                await handleSolDistribution(wallets[0], wallets);
+                break;
+            case '5':
                 console.log("\n=== Работа завершена");
                 returnToMainMenu();
                 break;
