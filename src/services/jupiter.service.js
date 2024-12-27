@@ -1,29 +1,35 @@
 import { VersionedTransaction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, getConnection, SLIPPAGE_BPS, PRIORITY_FEE } from '../config/index.js';
-import { returnToMainMenu } from '../utils/mainMenuReturn.js';
+import { TOKEN_PROGRAM_ID, getConnection, SLIPPAGE_BPS, BUY_PRIORITY_FEE, SELL_PRIORITY_FEE } from '../config/index.js';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { TRANSACTION_MODE } from '../config/index.js';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { RPC_CONFIG, PROXY_LIST } from '../config/index.js';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const MIN_TOKEN_AMOUNT = 5; // Минимальное количество токенов для продажи
-const MAX_RETRIES = 3; // Максимальное количество попыток
-const RETRY_DELAY = 2000; // Задержка между попытками (2 секунды)
+const MAX_RETRIES = 5; // Максимальное количество попыток
+const RETRY_DELAY = 3000; // Задержка между попытками (2 секунды)
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt = 1) {
     try {
-        if (attempt !== 1) {
-            console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.publicKey.toString().slice(0, 4)}..] Продажа ${tokenAmount.uiAmount} токена ${tokenMint} (попытка ${attempt}/${MAX_RETRIES})\x1b[0m`);
-        }
-
-        // Пробуем продать один раз
         try {
+            // Получаем случайный прокси, если включен режим прокси
+            const proxyUrl = RPC_CONFIG.USE_MULTI_PROXY === 1 ? 
+                PROXY_LIST[Math.floor(Math.random() * PROXY_LIST.length)].split(':') : null;
+            
+            const fetchOptions = proxyUrl ? {
+                agent: new HttpsProxyAgent(`http://${proxyUrl[2]}:${proxyUrl[3]}@${proxyUrl[0]}:${proxyUrl[1]}`),
+            } : {};
+
             const quoteResponse = await (
                 await fetch(`https://quote-api.jup.ag/v6/quote?` + 
                     `inputMint=${tokenMint}` +
                     `&outputMint=${SOL_MINT}` +
                     `&amount=${tokenAmount.amount}` +
-                    `&slippageBps=${SLIPPAGE_BPS}`
+                    `&slippageBps=${SLIPPAGE_BPS}`,
+                    fetchOptions
                 )
             ).json();
 
@@ -37,8 +43,9 @@ async function sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt = 1)
                         quoteResponse,
                         userPublicKey: wallet.publicKey.toString(),
                         wrapAndUnwrapSol: true,
-                        prioritizationFeeLamports: PRIORITY_FEE
-                    })
+                        prioritizationFeeLamports: SELL_PRIORITY_FEE
+                    }),
+                    ...fetchOptions
                 })
             ).json();
 
@@ -50,38 +57,61 @@ async function sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt = 1)
             const latestBlockhash = await conn.getLatestBlockhash();
             const rawtransaction = transaction.serialize();
             
-            const txid = await conn.sendRawTransaction(rawtransaction, {
-                skipPreflight: true,
-                maxRetries: 2
-            });
+            if (TRANSACTION_MODE === 1) {
+                const txid = await conn.sendRawTransaction(rawtransaction, {
+                    skipPreflight: true,
+                    maxRetries: 4,
+                    preflightCommitment: "processed"
+                });
 
-            await conn.confirmTransaction({
-                blockhash: latestBlockhash.blockhash,
-                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-                signature: txid
-            });
+            } else {
+                // Безопасный мод - ждем подтверждения
+                const txid = await conn.sendRawTransaction(rawtransaction, {
+                    skipPreflight: false,
+                    maxRetries: 4
+                });
 
-            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${wallet.publicKey.toString().slice(0, 4)}..] SUCCESS | Успешная продажа ${tokenAmount.uiAmount} ${tokenMint}\x1b[0m | https://solscan.io/tx/${txid}`);
+                await conn.confirmTransaction({
+                    blockhash: latestBlockhash.blockhash,
+                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                    signature: txid
+                });
+            }
+
+            // const tokenAccounts = await conn.getParsedTokenAccountsByOwner(
+            //     wallet.publicKey,
+            //     { programId: TOKEN_PROGRAM_ID }
+            // );
+
+            // const tokenAccount = tokenAccounts.value.find(
+            //     acc => acc.account.data.parsed.info.mint === tokenMint
+            // );
+
+            // if (tokenAccount) {
+            //     const remainingAmount = parseInt(tokenAccount.account.data.parsed.info.tokenAmount.amount);
+            //     if (remainingAmount > MIN_TOKEN_AMOUNT && attempt < MAX_RETRIES) {
+            //         await sleep(RETRY_DELAY);
+            //         return sellToken(wallet, tokenInfo, tokenMint, {
+            //             amount: remainingAmount.toString(),
+            //             uiAmount: tokenAccount.account.data.parsed.info.tokenAmount.uiAmount
+            //         }, attempt + 1);
+            //     }
+            // }
+
+            console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] [${wallet.publicKey.toString().slice(0, 4)}..] Продажа ${tokenAmount.uiAmount} ${tokenMint} завершена\x1b[0m`);
             return true;
 
         } catch (error) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | [${wallet.publicKey.toString().slice(0, 4)}..] Ошибка при продаже: ${error.message}\x1b[0m`);
-            
-            // Если попытка не последняя, пробуем снова
             if (attempt < MAX_RETRIES) {
-                console.log(`\x1b[36m[⌛] | WAITING | [${wallet.publicKey.toString().slice(0, 4)}..] Повторная попытка через ${RETRY_DELAY/1000} секунд...\x1b[0m`);
                 await sleep(RETRY_DELAY);
                 return sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt + 1);
             }
-            throw error;
         }
     } catch (error) {
         if (attempt < MAX_RETRIES) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | [${wallet.publicKey.toString().slice(0, 4)}..] Ошибка при продаже (попытка ${attempt}/${MAX_RETRIES}): ${error.message}\x1b[0m`);
             await sleep(RETRY_DELAY);
             return sellToken(wallet, tokenInfo, tokenMint, tokenAmount, attempt + 1);
         }
-        returnToMainMenu();
     }
 }
 
@@ -114,6 +144,7 @@ export async function sellAllTokens(wallet, tokenAddress = null) {
 
         await Promise.all(sellPromises);
         
+        
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.publicKey.toString().slice(0, 4)}..] Ошибка при продаже токенов: ${error}\x1b[0m`);
         throw error;
@@ -122,34 +153,41 @@ export async function sellAllTokens(wallet, tokenAddress = null) {
 
 export async function buyToken(wallet, tokenAddress, solAmount, attempt = 1) {
     try {
-        if (attempt !== 1) {
-            console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.publicKey.toString().slice(0, 4)}..] Покупка ${tokenAddress} на ${solAmount} SOL (попытка ${attempt}/${MAX_RETRIES})\x1b[0m`);
-        }
+        // Получаем случайный прокси, если включен режим прокси
+        const proxyUrl = RPC_CONFIG.USE_MULTI_PROXY === 1 ? 
+            PROXY_LIST[Math.floor(Math.random() * PROXY_LIST.length)].split(':') : null;
+        
+        const fetchOptions = proxyUrl ? {
+            agent: new HttpsProxyAgent(`http://${proxyUrl[2]}:${proxyUrl[3]}@${proxyUrl[0]}:${proxyUrl[1]}`),
+        } : {};
 
-        try {
-            const quoteResponse = await (
-                await fetch(`https://quote-api.jup.ag/v6/quote?` + 
-                    `inputMint=${SOL_MINT}` +
-                    `&outputMint=${tokenAddress}` +
-                    `&amount=${solAmount * LAMPORTS_PER_SOL}` +
-                    `&slippageBps=${SLIPPAGE_BPS}`
-                )
-            ).json();
+        const quoteResponse = await (
+            await fetch(`https://quote-api.jup.ag/v6/quote?` + 
+                `inputMint=${SOL_MINT}` +
+                `&outputMint=${tokenAddress}` +
+                `&amount=${solAmount * LAMPORTS_PER_SOL}` +
+                `&slippageBps=${SLIPPAGE_BPS}`,
+                fetchOptions
+            )
+        ).json();
 
-            const { swapTransaction } = await (
-                await fetch('https://quote-api.jup.ag/v6/swap', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        quoteResponse,
-                        userPublicKey: wallet.publicKey.toString(),
-                        wrapAndUnwrapSol: true,
-                        prioritizationFeeLamports: PRIORITY_FEE
-                    })
-                })
-            ).json();
+            const expectedAmount = parseInt(quoteResponse.outAmount);
+
+        const { swapTransaction } = await (
+            await fetch('https://quote-api.jup.ag/v6/swap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    quoteResponse,
+                    userPublicKey: wallet.publicKey.toString(),
+                    wrapAndUnwrapSol: true,
+                    prioritizationFeeLamports: BUY_PRIORITY_FEE
+                }),
+                ...fetchOptions
+            })
+        ).json();
 
             const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
             const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
@@ -159,38 +197,52 @@ export async function buyToken(wallet, tokenAddress, solAmount, attempt = 1) {
             const latestBlockhash = await conn.getLatestBlockhash();
             const rawtransaction = transaction.serialize();
             
-            const txid = await conn.sendRawTransaction(rawtransaction, {
-                skipPreflight: true,
-                maxRetries: 2
-            });
+            if (TRANSACTION_MODE === 1) {
+                const txid = await conn.sendRawTransaction(rawtransaction, {
+                    skipPreflight: true,
+                    maxRetries: 2,
+                    preflightCommitment: "processed"
+                });
+                await sleep(2000);
+            } else {
+                const txid = await conn.sendRawTransaction(rawtransaction, {
+                    skipPreflight: false,
+                    maxRetries: 2
+                });
 
-            await conn.confirmTransaction({
-                blockhash: latestBlockhash.blockhash,
-                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-                signature: txid
-            });
-
-            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] [${wallet.publicKey.toString().slice(0, 4)}..] SUCCESS | Успешная покупка ${tokenAddress} на ${solAmount} SOL\x1b[0m | https://solscan.io/tx/${txid}`);
-            return true;
-
-        } catch (error) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | [${wallet.publicKey.toString().slice(0, 4)}..] Ошибка при покупке: ${error.message}\x1b[0m`);
-            
-            // Если попытка не последняя, пробуем снова
-            if (attempt < MAX_RETRIES) {
-                console.log(`\x1b[36m[⌛] | WAITING | [${wallet.publicKey.toString().slice(0, 4)}..] Повторная попытка через ${RETRY_DELAY/1000} секунд...\x1b[0m`);
-                await sleep(RETRY_DELAY);
-                return buyToken(wallet, tokenAddress, solAmount, attempt + 1);
+                await conn.confirmTransaction({
+                    blockhash: latestBlockhash.blockhash,
+                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                    signature: txid
+                });
             }
-            returnToMainMenu();
-        }
+
+            // const tokenAccounts = await conn.getParsedTokenAccountsByOwner(
+            //     wallet.publicKey,
+            //     { programId: TOKEN_PROGRAM_ID }
+            // );
+
+            // const tokenAccount = tokenAccounts.value.find(
+            //     acc => acc.account.data.parsed.info.mint === tokenAddress
+            // );
+
+            // if (tokenAccount) {
+            //     const actualAmount = parseInt(tokenAccount.account.data.parsed.info.tokenAmount.amount)
+            //     const minExpectedAmount = Math.floor(expectedAmount * (1 - SLIPPAGE_BPS/10000));
+                
+            //     if (actualAmount < minExpectedAmount && attempt < MAX_RETRIES) {
+            //         await sleep(RETRY_DELAY);
+            //         return buyToken(wallet, tokenAddress, solAmount, attempt + 1);
+            //     }
+
+            console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] [${wallet.publicKey.toString().slice(0, 4)}..] Покупка ${solAmount} SOL -> ${expectedAmount} токенов завершена\x1b[0m`);
+        // }
+
     } catch (error) {
         if (attempt < MAX_RETRIES) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | [${wallet.publicKey.toString().slice(0, 4)}..] Ошибка при покупке (попытка ${attempt}/${MAX_RETRIES}): ${error.message}\x1b[0m`);
             await sleep(RETRY_DELAY);
             return buyToken(wallet, tokenAddress, solAmount, attempt + 1);
         }
-        returnToMainMenu();
     }
 }
 
@@ -199,6 +251,5 @@ export async function buyTokenService(wallet, tokenAddress, solAmount) {
         await buyToken(wallet, tokenAddress, solAmount);
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.publicKey.toString().slice(0, 4)}..] Ошибка при покупке токенов: ${error}\x1b[0m`);
-        returnToMainMenu();
     }
 }

@@ -4,10 +4,10 @@ const { default: DLMM, StrategyType } = pkg;
 import { Wallet } from '@project-serum/anchor';
 import bs58 from 'bs58';
 import BN from 'bn.js';
-import { modifyPriorityFeeIx, consolidateTokens } from './utils.service.js';
+import { modifyPriorityFeeIx } from './utils.service.js';
 import { getPositions, getFullPosition } from '../utils/GetPosition.js';
 import { sellAllTokens, buyToken } from './jupiter.service.js';
-import { TOTAL_RANGE_INTERVAL, getConnection, TOKEN_PROGRAM_ID } from '../config/index.js';
+import { TOTAL_RANGE_INTERVAL, getConnection, TOKEN_PROGRAM_ID, MAX_PRIORITY_FEE_REMOVE_LIQUIDITY, MAX_PRIORITY_FEE_CREATE_POSITION, TRANSACTION_MODE } from '../config/index.js';
 import { getTokenBalance } from '../utils/getBalance.js';
 import { displayLogo } from '../utils/logger.js';
 import { displayPositionsTable } from "./wallet.service.js";
@@ -37,19 +37,28 @@ export async function createPosition(poolAddress, user, amountInLamports, strate
             },
         });
 
-        modifyPriorityFeeIx(createPositionTx, 1000000);
+        modifyPriorityFeeIx(createPositionTx, MAX_PRIORITY_FEE_CREATE_POSITION);
 
         try {
-            const createPositionTxHash = await sendAndConfirmTransaction(
-                conn,
-                createPositionTx,
-                [user, newOneSidePosition],
-                { skipPreflight: false, preflightCommitment: "confirmed" }
-            );
-            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Хэш транзакции добавления ликвидности: ${createPositionTxHash}\x1b[0m`);
-        } catch (error) {
-            console.error("\x1b[31m~~~ [!] | ERROR | Ошибка при отправке транзакции\x1b[0m");
-        }
+            if (TRANSACTION_MODE === 1) {
+                // Деген мод - не ждем подтверждения
+                conn.sendTransaction(
+                    createPositionTx,
+                    [user, newOneSidePosition],
+                    { skipPreflight: true, preflightCommitment: "processed" }
+                );
+            } else {
+                // Безопасный мод - ждем подтверждения
+                await sendAndConfirmTransaction(
+                    conn,
+                    createPositionTx,
+                    [user, newOneSidePosition],
+                    { skipPreflight: false, preflightCommitment: "confirmed" }
+                );
+            }
+            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Транзакция добавления ликвидности отправлена\x1b[0m`);
+        } catch {} // Игнорируем ошибку
+        
     } catch (error) {
         console.error("\x1b[31m~~~ [!] | ERROR | Ошибка в createPosition\x1b[0m");
     }
@@ -92,20 +101,28 @@ export async function removeLiquidity(poolAddress, user) {
             shouldClaimAndClose: true,
         });
 
-        modifyPriorityFeeIx(removeLiquidityTx, 1000000);
+        modifyPriorityFeeIx(removeLiquidityTx, MAX_PRIORITY_FEE_REMOVE_LIQUIDITY);
 
         try {
-            const txHash = await sendAndConfirmTransaction(
-                conn,
-                removeLiquidityTx,
-                [user],
-                { skipPreflight: false, preflightCommitment: "confirmed" }
-            );
-            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Хэш транзакции удаления ликвидности: ${txHash}\x1b[0m`);
-        } catch (error) {
-            console.error("\x1b[31m~~~ [!] | ERROR | Ошибка при отправке транзакции удаления ликвидности\x1b[0m");
-            throw error;
-        }
+            if (TRANSACTION_MODE === 1) {
+                // Деген мод - не ждем подтверждения
+                conn.sendTransaction(
+                    removeLiquidityTx,
+                    [user],
+                    { skipPreflight: true, preflightCommitment: "processed" }
+                );
+            } else {
+                // Безопасный мод - ждем подтверждения
+                await sendAndConfirmTransaction(
+                    conn,
+                    removeLiquidityTx,
+                    [user],
+                    { skipPreflight: false, preflightCommitment: "confirmed" }
+                );
+            }
+            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Транзакция удаления ликвидности отправлена\x1b[0m`);
+        } catch {} // Игнорируем ошибку
+        
     } catch (error) {
         console.error("\x1b[31m~~~ [!] | ERROR | Ошибка в removeLiquidity\x1b[0m");
         throw error;
@@ -183,6 +200,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                         const tokenName = position.poolInfo.name;
                         tokenAddress = position.poolInfo.x_mint;
                         const positionSolValue = position.amounts.positionToken2;
+                        const activeBinID = position.binID.current;
                         
                         // Добавляем информацию о позиции в общий массив
                         positionsInfo.push({
@@ -491,7 +509,7 @@ export async function processRemoveLiquidity(walletData, poolAddress) {
             user
         );
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при удалении ликвидности: ${error.message}\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при удалении ликвидности\x1b[0m`);
         throw error;
     }
 }
@@ -503,7 +521,7 @@ export async function processSellAllTokens(walletData, tokenAddress = null) {
         const wallet = new Wallet(user);
         await sellAllTokens(wallet, tokenAddress);
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при продаже токенов: ${error.message}\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при продаже токенов\x1b[0m`);
     }
 }
 
@@ -537,15 +555,14 @@ export async function claimAllRewards(user, poolAddress) {
             return;
         }
 
-        // Проверяем наличие комиссий для получения
         if (positionData.positionData.feeX.isZero() && positionData.positionData.feeY.isZero()) {
             console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Нет доступных фисов для клейма\x1b[0m`);
             return;
         }
-        // Используем claimAllRewards вместо claimAllLMRewards
+
         const claimRewardsTxs = await dlmmPool.claimAllRewards({
             owner: user.publicKey,
-            positions: [positionData] // Передаем массив позиций
+            positions: [positionData]
         });
 
         if (!claimRewardsTxs || claimRewardsTxs.length === 0) {
@@ -555,16 +572,27 @@ export async function claimAllRewards(user, poolAddress) {
         
         for (let i = 0; i < claimRewardsTxs.length; i++) {
             const tx = claimRewardsTxs[i];            
-            modifyPriorityFeeIx(tx, 1000000);
+            modifyPriorityFeeIx(tx, 150000);
             
             try {
-                const txHash = await sendAndConfirmTransaction(
-                    conn,
-                    tx,
-                    [user],
-                    { skipPreflight: false, preflightCommitment: "confirmed" }
-                );
-                console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Хэш транзакции клейма фисов: ${txHash}\x1b[0m`);
+                if (TRANSACTION_MODE === 1) {
+                    sendAndConfirmTransaction(
+                        conn,
+                        tx,
+                        [user],
+                        { skipPreflight: true, preflightCommitment: "processed" }
+                    );
+                    console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Транзакция клейма фисов отправлена (деген мод)\x1b[0m`);
+                } else {
+                    // Безопасный мод - ждем подтверждения
+                    const txHash = await sendAndConfirmTransaction(
+                        conn,
+                        tx,
+                        [user],
+                        { skipPreflight: false, preflightCommitment: "confirmed" }
+                    );
+                    console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Хэш транзакции клейма фисов: ${txHash}\x1b[0m`);
+                }
                 
                 if (i < claimRewardsTxs.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -649,7 +677,7 @@ export async function createTokenPosition(poolAddress, user, strategy = '2') {
             );
             console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | ${user.publicKey.toString().slice(0, 4)}.. Хэш транзакции добавления ликвидности: ${createPositionTxHash}\x1b[0m`);
         } catch (error) {
-            console.error("\x1b[31m~~~ [!] | ERROR | Ошибка при отправке транзакции | PositionAction.js\x1b[0m");
+            console.error("\x1b[31m~~~ [!] | ERROR | Ошибка при отправке транзакции \x1b[0m");
         }
     } catch (error) {
         console.error("\x1b[31m~~~ [!] | ERROR | Ошибка в createTokenPosition\x1b[0m");

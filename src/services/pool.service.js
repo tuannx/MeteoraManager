@@ -20,6 +20,7 @@ export async function getPoolsInfo(tokenAddress) {
                 const details = await detailsResponse.json();
                 return {
                     ...pool,
+                    name: details.name,
                     binStep: details.bin_step,
                     baseFee: details.base_fee_percentage,
                     fees24: details.fees_24h,
@@ -32,6 +33,7 @@ export async function getPoolsInfo(tokenAddress) {
             } catch (error) {
                 return {
                     ...pool,
+                    name: 'Н/Д',
                     binStep: 'Н/Д',
                     baseFee: 'Н/Д',
                     fees24: 'Н/Д',

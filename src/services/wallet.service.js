@@ -13,7 +13,7 @@ import { WALLETS } from '../config/index.js';
 import { handleSwapTokens } from '../actions/SwapTokens.js';
 import { displayLogo, selectWallets } from '../utils/logger.js';
 import { returnToMainMenu } from '../utils/mainMenuReturn.js';
-
+import { handleReopenPosition } from '../actions/ReopenPosition.js';
 
 export async function displayPositionsTable(wallets,positionCheck = true) {
     const tableData = [];
@@ -89,12 +89,19 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
 `);
         });
         if (positionCheck) {
-            const Choice = await question("\n[...] Выберите действие: \n1: Закрыть позиции\n2: Повторная проверка\n3: Клейм комсы\n4: Вернуться в главное меню\nВыберите: ");
+            const Choice = await question("\n[...] Выберите действие: \n1: Закрыть позиции\n2: Закрыть позиции и продать все токены\n3: Переоткрыть позиции\n4: Повторная проверка\n5: Клейм комсы\n6: Вернуться в главное меню\n\n[...] Выберите действие (1-6): ");
             if (Choice === '1') {
-                await handleRemovePosition(wallets);
+                const predefinedPool = await question("\n[...] Введите адрес пула: ");
+                await handleRemovePosition(wallets, predefinedPool);
             } else if (Choice === '2') {
-                await displayPositionsTable(wallets, true);
+                const predefinedPool = await question("\n[...] Введите адрес пула: ");
+                await handleRemovePosition(wallets, predefinedPool);
+                await handleSwapTokens(wallets, '2', '1');
             } else if (Choice === '3') {
+                await handleReopenPosition(wallets);
+            } else if (Choice === '4') {
+                await displayPositionsTable(wallets, true);
+            } else if (Choice === '5') {
                 const poolAddress = await question("\n[...] Введите адрес пула: ");
                 await processClaimRewards(wallets, poolAddress);
             } else {
@@ -191,7 +198,7 @@ export async function walletInfo(wallets, positionCheck = true) {
         console.log(`\n\x1b[36m-+-\x1b[0m ОБЩАЯ СТОИМОСТЬ ВСЕХ АКТИВОВ: \x1b[32m$${formatNumber(totalUsdValue)}\x1b[0m`);
 
         // Обновленное меню действий
-        const choice = await question("\n[...] Выберите действие:\n1. Купить/продать токены\n2. Консолидировать токены\n3. Консолидировать SOL\n4. Распределить SOL\n5: Вернуться в главное меню\nВыберите: ");
+        const choice = await question("\n[...] Выберите действие:\n1. Купить/продать токены\n2. Консолидировать токены\n3. Консолидировать SOL\n4. Распределить SOL\n5: Обновить баланс\n6: Вернуться в главное меню\n\n[...] Выберите действие (1-6): ");
 
         switch (choice) {
             case '1':
@@ -209,6 +216,9 @@ export async function walletInfo(wallets, positionCheck = true) {
                 await handleSolDistribution(wallets[0], wallets);
                 break;
             case '5':
+                await walletInfo(wallets, true);
+                break;
+            case '6':
                 console.log("\n=== Работа завершена");
                 returnToMainMenu();
                 break;
@@ -216,5 +226,40 @@ export async function walletInfo(wallets, positionCheck = true) {
                 console.log("\n[!] Некорректный выбор");
                 returnToMainMenu();
         }
+    }
+}
+
+export async function showAvailablePools(wallets) {
+    const uniquePools = new Map();
+
+    const promises = wallets.map(async (wallet) => {
+        await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
+        const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
+        const positions = await getPositions(user);
+        
+        if (positions && positions.length > 0) {
+            for (const position of positions) {
+                uniquePools.set(position.poolAddress, position.poolInfo.name);
+            }
+        }
+    });
+
+    await Promise.all(promises);
+
+    if (uniquePools.size > 0) {
+        console.log("\n\x1b[36m-+-\x1b[0m СПИСОК ПУЛОВ:");
+        uniquePools.forEach((name, pool) => {
+            console.log(`
+\x1b[36m• POOL: \x1b[0m${name}
+  └─ \x1b[90mAddress:\x1b[0m ${pool}
+  └─ \x1b[90mLinks:\x1b[0m
+     • \x1b[34mPhoton\x1b[0m: https://photon-sol.tinyastro.io/en/lp/${pool}
+     • \x1b[34mMeteora\x1b[0m: https://app.meteora.ag/dlmm/${pool}
+`);
+        });
+        return true;
+    } else {
+        console.log("\n[!] Нет активных позиций для отображения");
+        return false;
     }
 }

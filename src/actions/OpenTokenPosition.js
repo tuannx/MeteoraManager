@@ -5,6 +5,7 @@ import { getFullPosition } from '../utils/GetPosition.js';
 import { question } from '../utils/question.js';
 import bs58 from 'bs58';
 import { returnToMainMenu } from '../utils/mainMenuReturn.js';
+import { logWalletsTokensPools } from './PoolOperations.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -13,7 +14,7 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
         return [];
     }
 
-    const action = await question("\nВыберите действие:\n1. Перепроверить позиции\n2. Повторно добавить ликвидность\n3. Пропустить\nВаш выбор (1-3): ");
+    const action = await question("\nВыберите действие:\n1. Перепроверить позиции\n2. Повторно добавить ликвидность\n3. Пропустить\n\n[...] Ваш выбор (1-3): ");
     
     if (action === "1") {
         console.log("\n\x1b[36m[⌛] | WAITING | Ожидаем 2 секунды перед проверкой...\x1b[0m");
@@ -40,11 +41,13 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
     } else if (action === "2") {
         const retryPromises = walletsWithoutPosition.map(async wallet => {
             try {
-                await processCreateTokenPosition(wallet, poolAddress, strategy);
-                await delay(7000);
-                
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
-                const position = await getFullPosition(user, new PublicKey(poolAddress));
+                let position = await getFullPosition(user, new PublicKey(poolAddress));
+                if (!position) {
+                    await processCreateTokenPosition(wallet, poolAddress, strategy);
+                }
+                
+                position = await getFullPosition(user, new PublicKey(poolAddress));
                 
                 if (!position) {
                     console.log(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Позиция не создана при повторной попытке\x1b[0m`);
@@ -64,27 +67,34 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
 }
 
 export async function handleOpenTokenPosition(selectedWallets, predefinedPool = null) {
-    try {        
-        const poolAddress = predefinedPool || await question("\n[...] Введите адрес пула: ");
+    try {
+        let poolAddress;
+        if (!predefinedPool) {
+            await logWalletsTokensPools(selectedWallets);
+            poolAddress = await question("\n[...] Введите адрес пула: ");
+        } else {
+            poolAddress = predefinedPool;
+        }
 
         const strategy = await strategyType();
         
         try {
             new PublicKey(poolAddress);
         } catch (e) {
-            throw new Error("\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула\x1b[0m");
+            console.error("\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула\x1b[0m");
+            returnToMainMenu();
         }
 
         const walletsWithoutPosition = [];
         
         const openPromises = selectedWallets.map(async wallet => {
             try {
-                await processCreateTokenPosition(wallet, poolAddress, strategy);
-                await delay(7000);
-                
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
-                const position = await getFullPosition(user, new PublicKey(poolAddress));
-                
+                let position = await getFullPosition(user, new PublicKey(poolAddress));
+                if (!position) {
+                    await processCreateTokenPosition(wallet, poolAddress, strategy);
+                }
+                position = await getFullPosition(user, new PublicKey(poolAddress));
                 if (!position) {
                     walletsWithoutPosition.push(wallet);
                 }

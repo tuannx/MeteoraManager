@@ -63,7 +63,7 @@ export async function handleTokenConsolidation(MainWallet, selectedWallets) {
 
         const sellChoice = await question("\n[...] Желаете продать токены? (1: Да, 2: Нет): ");
         if (sellChoice === "1") {
-            await new Promise(resolve => setTimeout(resolve, 12000));
+            await new Promise(resolve => setTimeout(resolve, 10000));
             await processSellAllTokens(targetWallet);
             console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Консолидация и продажа завершена\x1b[0m`);
             returnToMainMenu();

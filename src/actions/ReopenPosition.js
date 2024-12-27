@@ -11,7 +11,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function handleReopenPosition(selectedWallets) {
     try {        
-        console.log("\nВЫБЕРИТЕ ТИП ПОЗИЦИИ:\n=========================");
+        console.log("\nВ ЧЕМ ВЫ ХОТИТЕ ПЕРЕОТКРЫТЬ ПОЗИЦИЮ:\n=========================");
         console.log(`\x1b[36m-+-\x1b[0m 1: В ТОКЕНАХ`);
         console.log(`\x1b[36m-+-\x1b[0m 2: В SOL`);
         
@@ -36,19 +36,11 @@ export async function handleReopenPosition(selectedWallets) {
         // Проверяем существующие позиции
         console.log("\n\x1b[36m[⌛] | WAITING | Проверяем текущие позиции...\x1b[0m");
         const walletsWithPosition = [];
-        const checkPromises = selectedWallets.map(async wallet => {
-            const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
-            const position = await getFullPosition(user, validPoolAddress);
-            if (position) {
-                walletsWithPosition.push(wallet);
-            }
-        });
-        await Promise.all(checkPromises);
 
         // Закрываем существующие позиции
-        if (walletsWithPosition.length > 0) {
+        if (selectedWallets.length > 0) {
             console.log("\n\x1b[36m[⌛] | WAITING | Закрываем существующие позиции...\x1b[0m\n");
-            const removePromises = walletsWithPosition.map(async wallet => {
+            const removePromises = selectedWallets.map(async wallet => {
                 try {
                     await processRemoveLiquidity(wallet, validPoolAddress);
                 } catch (error) {
@@ -58,12 +50,11 @@ export async function handleReopenPosition(selectedWallets) {
             });
             await Promise.all(removePromises);
         }
-
         // Проверяем, что все позиции закрыты
         console.log("\n\x1b[36m[⌛] | WAITING | Проверяем закрытие позиций...\x1b[0m\n");
         await delay(2000);
         const remainingPositions = [];
-        const verifyClosePromises = walletsWithPosition.map(async wallet => {
+        const verifyClosePromises = selectedWallets.map(async wallet => {
             const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
             const position = await getFullPosition(user, validPoolAddress);
             if (position) {
@@ -113,9 +104,6 @@ export async function handleReopenPosition(selectedWallets) {
             const action = await question("\nВыберите действие:\n1. Перепроверить позиции\n2. Повторно добавить ликвидность\n3. Пропустить эти кошельки\n4. Вернуться в главное меню\nВаш выбор (1-4): ");
             
             if (action === "1") {
-                console.log("\n\x1b[36m[⌛] | WAITING | Ожидаем 2 секунды перед проверкой...\x1b[0m");
-                await delay(2000);
-                
                 const remainingWallets = [];
                 const retryPromises = walletsWithoutPosition.map(async wallet => {
                     const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));

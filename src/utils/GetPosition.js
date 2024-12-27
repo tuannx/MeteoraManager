@@ -9,7 +9,6 @@ export async function getPositions(user) {
         const positions = await DLMM.getAllLbPairPositionsByUser(conn, user.publicKey);
         
         if (positions.size === 0) {
-            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Нет активных позиций\x1b[0m`);
             return [];
         }
 
@@ -80,7 +79,6 @@ export async function getFullPosition(user, poolAddress) {
         const positions = await DLMM.getAllLbPairPositionsByUser(conn, user.publicKey);
         
         if (positions.size === 0) {
-            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Нет активных позиций\x1b[0m`);
             return null;
         }
 
@@ -88,13 +86,11 @@ export async function getFullPosition(user, poolAddress) {
         const position = positions.get(poolAddress.toString());
         
         if (!position) {
-            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Нет позиции для пула ${poolAddress.toString()}\x1b[0m`);
             return null;
         }
 
         return position;
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | [${user.publicKey.toString().slice(0, 4)}...] Ошибка при получении позиции:`, error);
         return null;
     }
 }

@@ -104,12 +104,21 @@ export const getConnection = () => connectionPool.getConnection();
 export const TOTAL_RANGE_INTERVAL = 68;
 
 export const MAX_PRIORITY_FEE = 1000000;
+export const MAX_PRIORITY_FEE_REMOVE_LIQUIDITY = 1500000; // Примерно 0.0001 SOL
+export const MAX_PRIORITY_FEE_CREATE_POSITION = 1500000; // Примерно 0.0001 SOL
+export const TRANSACTION_MODE = 1 // 1 - DEGEN {НЕ ЖДЕТ ПОДТВЕРЖДЕНИЯ ТРАНЗАКЦИИ, СООТВЕТСТВЕННО, МОГУТ БЫТЬ ЕРРОРЫ} 0 - DEGEN {ЖДЕТ ПОДТВЕРЖДЕНИЯ ТРАНЗАКЦИИ}
 export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+
+// Добавляем экспорт RPC_CONFIG и PROXY_LIST
+export { RPC_CONFIG, PROXY_LIST };
 
 // Конфигурация для свапов юпитера
 export const SLIPPAGE_BPS = 5 * 100; // 5%
-export const PRIORITY_FEE = 0.0005 * 1000000000; // 0.0005 SOL
+export const SELL_PRIORITY_FEE = 0.0003 * 1000000000; // 0.0003 SOL
+export const BUY_PRIORITY_FEE = 0.0005 * 1000000000; // 0.0005 SOL
 
+
+// Кошельки [!] Не советую использовать много кошельков, так как это может привести к ошибкам RPC
 export const WALLETS = {
     "1": {
         privateKey: "Your Private Key",

@@ -1,4 +1,4 @@
-import { connection, getConnection } from '../config/index.js';
+import { getConnection } from '../config/index.js';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 export async function getSolBalance(wallet) {
