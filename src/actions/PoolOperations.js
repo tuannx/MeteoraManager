@@ -7,6 +7,7 @@ import { WALLETS, TOKEN_PROGRAM_ID, getConnection } from '../config/index.js';
 import { PublicKey, Keypair } from '@solana/web3.js';
 import { returnToMainMenu } from '../utils/mainMenuReturn.js';
 import { displayLogo } from '../utils/logger.js';
+import { bundleChecker } from '../utils/bundleChecker.js';
 import bs58 from 'bs58';
 
 function calculateLiquidityStatus(pool) {
@@ -62,11 +63,12 @@ export async function handlePoolCheck() {
                 
                 console.log("\nВыберите действие:");
                 console.log("1: Открыть позицию");
-                console.log("2: Продолжить проверку");
-                console.log("3: Завершить");
-                console.log("4: Вернуться в главное меню");
+                console.log("2: Проверить бандл");
+                console.log("3: Продолжить проверку");
+                console.log("4: Завершить");
+                console.log("5: Вернуться в главное меню");
                 
-                const choice = await question("\n[...] Ваш выбор (1-4): ");
+                const choice = await question("\n[...] Ваш выбор (1-5): ");
                 
                 if (choice === "1" && filteredPoolDetails.length > 0) {
                     console.log("\nДоступные пулы:");
@@ -81,11 +83,16 @@ export async function handlePoolCheck() {
                     continueChecking = false;
                     await handleOpenPositionFromCheck(selectedPool);
                 } else if (choice === "2") {
+                    const bundle = await bundleChecker(tokenAddress);
+                    console.log("\nBundled: ", (bundle.bundlePercentage > 30 ? "\x1b[33m" : "\x1b[32m") + bundle.bundlePercentage + "%" + (bundle.bundlePercentage > 30 ? " ⚠️" : " ✓") + "\x1b[0m");
+                    console.log("Bundled SOL: ", (bundle.bundlePercentage > 30 ? "\x1b[33m" : "\x1b[32m") + bundle.bandleSol + " SOL" + "\x1b[0m\n");
                     continue;
                 } else if (choice === "3") {
+                    continue
+                } else if (choice === "4") {
                     continueChecking = false;
                     process.exit();
-                } else if (choice === "4") {
+                } else if (choice === "5") {
                     continueChecking = false;
                     returnToMainMenu();
                 } else {
