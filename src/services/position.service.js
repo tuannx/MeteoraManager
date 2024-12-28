@@ -263,7 +263,8 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                                 try {
                                     await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
                                     console.log(`\n\x1b[36m[⌛] | WAITING | [${user.publicKey.toString().slice(0, 4)}...] Отправка транзакции на закрытие позиции\x1b[0m`);
-                                    await processRemoveLiquidity(wallet, poolAddress);                                    
+                                    await processRemoveLiquidity(wallet, poolAddress);  
+                                    await new Promise(resolve => { setTimeout(resolve, 2000 + Math.random() * 1000) });
                                     // Проверяем, закрылась ли позиция
                                     const position = await getFullPosition(user, new PublicKey(poolAddress));
                                     
@@ -412,6 +413,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                                                     if (!fullPosition) {
                                                         console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на закрытие позиции\x1b[0m`);
                                                         await processRemoveLiquidity(wallet, poolAddress);
+                                                        await new Promise(resolve => { setTimeout(resolve, 2000 + Math.random() * 1000) });
                                                     }
                                                     fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
                                                     if (fullPosition) {
@@ -444,6 +446,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                                                     if (!fullPosition) {
                                                         console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на открытие позиции в токенах\x1b[0m`);
                                                         await processCreateTokenPosition(wallet, poolAddress, strategy);
+                                                        await new Promise(resolve => { setTimeout(resolve, 2000 + Math.random() * 1000) });
                                                     }
                                                     fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
                                                     if (!fullPosition) {
@@ -483,7 +486,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
             await new Promise(resolve => setTimeout(resolve, 20000));
             
         } catch (error) {
-            console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при проверке позиций: ${error.message}\x1b[0m`);
+            console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при проверке позицийx1b[0m`);
             await new Promise(resolve => setTimeout(resolve, 10000));
         }
     }
