@@ -610,7 +610,7 @@ export async function claimAllRewards(user, poolAddress) {
     }
 }
 
-export async function processClaimRewards(wallets, poolAddress) {
+export async function processClaimRewards(wallets, poolAddress, showPositionsTable = true) {
     try {
         console.log(`\n\x1b[36m[⌛] | WAITING | Начало клейма фисов для ${wallets.length} кошельков...\x1b[0m`);
         
@@ -627,7 +627,9 @@ export async function processClaimRewards(wallets, poolAddress) {
         
         console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Клейм фисов завершен\x1b[0m`);
 
-        await displayPositionsTable(wallets, true);
+        if (showPositionsTable) {
+            await displayPositionsTable(wallets, true);
+        }
     } catch (error) {
         console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при клейме фисов: ${error.message}\x1b[0m`);
     }

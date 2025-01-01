@@ -103,7 +103,13 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
                 await displayPositionsTable(wallets, true);
             } else if (Choice === '5') {
                 const poolAddress = await question("\n[...] Введите адрес пула: ");
-                await processClaimRewards(wallets, poolAddress);
+                const sellChoice = await question("\n[...] Продать заклейменные токены?\n1: Да\n2: Нет\n\n[...] Ваш выбор (1-2): ");
+                if (sellChoice === '1') {
+                    await processClaimRewards(wallets, poolAddress, false);
+                    await handleSwapTokens(wallets, '2', '1');
+                } else {
+                    await processClaimRewards(wallets, poolAddress, true);
+                }
             } else {
                 returnToMainMenu();
             }
