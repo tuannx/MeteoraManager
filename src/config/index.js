@@ -10,8 +10,10 @@ const RPC_CONFIG = {
 };
 
 const RPC_ENDPOINTS = [
-    "https://api.mainnet-beta.solana.com",
-    "https://api.testnet.solana.com",
+    "https://mainnet.helius-rpc.com/?api-key=2c76b352-4e1a-4cbf-bc4b-d240ace3a5ab",
+    // "https://api.helius.xyz/{function}?api-key=2c76b352-4e1a-4cbf-bc4b-d240ace3a5ab",
+    // "https://api.mainnet-beta.solana.com",
+    // "https://api.testnet.solana.com",
 ];
 
 const PROXY_LIST = [
@@ -121,24 +123,24 @@ export const BUY_PRIORITY_FEE = 0.0005 * 1000000000; // 0.0005 SOL
 // Кошельки [!] Не советую использовать много кошельков, так как это может привести к ошибкам RPC
 export const WALLETS = {
     "1": {
-        privateKey: "Your Private Key",
-        description: "Your Wallet Address"
+        privateKey: "3CQotVrC6yTc97LoPD8iS5WBLBRGiDYdyxfhVihZJdSA6Z6GXdReKc39CXMPHHaiHdC39vWpG5fdT8mxKBMjP5qZ", // Replace with your actual private key, store securely
+        description: "AwtqB8DqoXrVmL96HkSb8JxRaqAcKUBqkC46oRc996nT"
     },
-    "2": {
-        privateKey: "Your Private Key2",
-        description: "Your Wallet Address2"
-    },
-    "3": {
-        privateKey: "Your Private Key3",
-        description: "Your Wallet Address3"
-    },
-    "4": {
-        privateKey: "Your Private Key4",
-        description: "Your Wallet Address4"
-    },
-    "5": {
-        privateKey: "Your Private Key5",
-        description: "Your Wallet Address5"
-    },
-    // Добавьте дополнительные кошельки по необходимости
+    // "2": {
+    //     privateKey: "PLACEHOLDER_PRIVATE_KEY_2", // Replace with your actual private key, store securely
+    //     description: "Your Wallet Address2"
+    // },
+    // "3": {
+    //     privateKey: "PLACEHOLDER_PRIVATE_KEY_3", // Replace with your actual private key, store securely
+    //     description: "Your Wallet Address3"
+    // },
+    // "4": {
+    //     privateKey: "PLACEHOLDER_PRIVATE_KEY_4", // Replace with your actual private key, store securely
+    //     description: "Your Wallet Address4"
+    // },
+    // "5": {
+    //     privateKey: "PLACEHOLDER_PRIVATE_KEY_5", // Replace with your actual private key, store securely
+    //     description: "Your Wallet Address5"
+    // },
+    // Добавьте дополнительные кошельки по необходимости, store private keys securely
 };

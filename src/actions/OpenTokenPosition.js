@@ -14,10 +14,10 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
         return [];
     }
 
-    const action = await question("\nВыберите действие:\n1. Перепроверить позиции\n2. Повторно добавить ликвидность\n3. Пропустить\n\n[...] Ваш выбор (1-3): ");
+    const action = await question("\nSelect an action:\n1. Recheck positions\n2. Re-add liquidity\n3. Skip\n\n[...] Your choice (1-3): ");
     
     if (action === "1") {
-        console.log("\n\x1b[36m[⌛] | WAITING | Ожидаем 2 секунды перед проверкой...\x1b[0m");
+        console.log("\n\x1b[36m[⌛] | WAITING | Waiting 2 seconds before checking...\x1b[0m");
         await delay(2000);
         
         const remainingWallets = [];
@@ -35,7 +35,7 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
         if (remainingWallets.length > 0) {
             return await handleWalletsWithoutPosition(remainingWallets, poolAddress, strategy);
         } else {
-            console.log("\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Все позиции успешно проверены\x1b[0m");
+            console.log("\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | All positions checked successfully\x1b[0m");
             return [];
         }
     } else if (action === "2") {
@@ -50,12 +50,12 @@ async function handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress,
                 position = await getFullPosition(user, new PublicKey(poolAddress));
                 
                 if (!position) {
-                    console.log(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Позиция не создана при повторной попытке\x1b[0m`);
+                    console.log(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Position not created on retry\x1b[0m`);
                 } else {
-                    console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] | Позиция успешно создана\x1b[0m`);
+                    console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] | Position created successfully\x1b[0m`);
                 }
             } catch (error) {
-                console.error(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Ошибка при повторной попытке: ${error.message}\x1b[0m`);
+                console.error(`\n\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] | Error on retry: ${error.message}\x1b[0m`);
             }
         });
 
@@ -71,7 +71,7 @@ export async function handleOpenTokenPosition(selectedWallets, predefinedPool = 
         let poolAddress;
         if (!predefinedPool) {
             await logWalletsTokensPools(selectedWallets);
-            poolAddress = await question("\n[...] Введите адрес пула: ");
+            poolAddress = await question("\n[...] Enter pool address: ");
         } else {
             poolAddress = predefinedPool;
         }
@@ -81,7 +81,7 @@ export async function handleOpenTokenPosition(selectedWallets, predefinedPool = 
         try {
             new PublicKey(poolAddress);
         } catch (e) {
-            console.error("\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула\x1b[0m");
+            console.error("\x1b[31m~~~ [!] | ERROR | Invalid pool address\x1b[0m");
             returnToMainMenu();
         }
 
@@ -107,7 +107,7 @@ export async function handleOpenTokenPosition(selectedWallets, predefinedPool = 
 
         let finalWalletsWithoutPosition = [];
         if (walletsWithoutPosition.length > 0) {
-            console.log("\n\x1b[31m~~~ [!] | ERROR | Следующие кошельки требуют внимания:\x1b[0m");
+            console.log("\n\x1b[31m~~~ [!] | ERROR | The following wallets require attention:\x1b[0m");
             walletsWithoutPosition.forEach(wallet => 
                 console.log(`- ${wallet.description.slice(0, 4)}...`)
             );
@@ -115,12 +115,12 @@ export async function handleOpenTokenPosition(selectedWallets, predefinedPool = 
             finalWalletsWithoutPosition = await handleWalletsWithoutPosition(walletsWithoutPosition, poolAddress, strategy);
         }
 
-        console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Открытие позиций завершено\x1b[0m`);
+        console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Opening positions completed\x1b[0m`);
         
-        console.log("\n\x1b[36m• Итоговая статистика:\x1b[0m");
-        console.log(`  └─ \x1b[90mВсего кошельков:\x1b[0m ${selectedWallets.length}`);
-        console.log(`  └─ \x1b[90mУспешно:\x1b[0m ${selectedWallets.length - (finalWalletsWithoutPosition?.length || 0)}`);
-        console.log(`  └─ \x1b[90mТребуют внимания:\x1b[0m ${finalWalletsWithoutPosition?.length || 0}`);
+        console.log("\n\x1b[36m• Final statistics:\x1b[0m");
+        console.log(`  └─ \x1b[90mTotal wallets:\x1b[0m ${selectedWallets.length}`);
+        console.log(`  └─ \x1b[90mSuccessful:\x1b[0m ${selectedWallets.length - (finalWalletsWithoutPosition?.length || 0)}`);
+        console.log(`  └─ \x1b[90mRequire attention:\x1b[0m ${finalWalletsWithoutPosition?.length || 0}`);
         
         returnToMainMenu();
         

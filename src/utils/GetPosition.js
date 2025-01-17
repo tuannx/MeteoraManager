@@ -61,14 +61,14 @@ export async function getPositions(user) {
                     });
                 });
             } catch (error) {
-                console.log(`\x1b[31m~~~ [!] | ERROR | Ошибка при получении данных пула ${posPoolAddress}: ${error.message}\x1b[0m`);
+                console.log(`\x1b[31m~~~ [!] | ERROR | Error getting pool data ${posPoolAddress}: ${error.message}\x1b[0m`);
                 continue;
             }
         }
 
         return simplifiedPositions;
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | [${user.publicKey.toString().slice(0, 4)}...] Ошибка при получении позиций:`, error);
+        console.error(`\x1b[31m~~~ [!] | ERROR | [${user.publicKey.toString().slice(0, 4)}...] Error getting positions:`, error);
         return [];
     }
 }
@@ -82,7 +82,7 @@ export async function getFullPosition(user, poolAddress) {
             return null;
         }
 
-        // Получаем полную позицию для конкретного пула
+        // Getting the full position for a specific pool
         const position = positions.get(poolAddress.toString());
         
         if (!position) {

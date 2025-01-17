@@ -4,16 +4,16 @@ export async function getPoolsInfo(tokenAddress) {
         const data = await response.json();
         
         if (!data || !data.pairs || data.pairs.length === 0) {
-            throw new Error(`\x1b[31m~~~ [!] | ERROR | Нет данных о пулах для токена\x1b[0m`);
+            throw new Error(`\x1b[31m~~~ [!] | ERROR | No pool data for this token\x1b[0m`);
         }
 
-        // Фильтруем пулы Meteora с SOL
+        // Filter Meteora pools with SOL
         const meteoraSolPools = data.pairs.filter(pair => 
             pair.dexId === 'meteora' && 
             (pair.baseToken.symbol === 'SOL' || pair.quoteToken.symbol === 'SOL')
         );
 
-        // Получаем дополнительную информацию для каждого пула
+        // Get additional information for each pool
         const poolsWithDetails = await Promise.all(meteoraSolPools.map(async (pool) => {
             try {
                 const detailsResponse = await fetch(`https://app.meteora.ag/clmm-api/pair/${pool.pairAddress}`);
@@ -33,22 +33,22 @@ export async function getPoolsInfo(tokenAddress) {
             } catch (error) {
                 return {
                     ...pool,
-                    name: 'Н/Д',
-                    binStep: 'Н/Д',
-                    baseFee: 'Н/Д',
-                    fees24: 'Н/Д',
-                    currentPrice: 'Н/Д',
-                    liquidity: 'Н/Д',
-                    protocolFee: 'Н/Д',
-                    mintX: 'Н/Д',
-                    tradeVolume: 'Н/Д'
+                    name: 'N/A',
+                    binStep: 'N/A',
+                    baseFee: 'N/A',
+                    fees24: 'N/A',
+                    currentPrice: 'N/A',
+                    liquidity: 'N/A',
+                    protocolFee: 'N/A',
+                    mintX: 'N/A',
+                    tradeVolume: 'N/A'
                 };
             }
         }));
         
         return poolsWithDetails;
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при получении информации о пулах: ${error}\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | Error getting pool information: ${error}\x1b[0m`);
         return [];
     }
-} 
+}

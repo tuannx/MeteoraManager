@@ -73,12 +73,12 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
         if (positionCheck) {
             await displayLogo();
         }
-        console.log("\n\x1b[36m | ИНФОРМАЦИЯ О ПОЗИЦИЯХ\x1b[0m");
+        console.log("\n\x1b[36m | POSITIONS INFORMATION\x1b[0m");
         console.table(tableData);
-        console.log(`\n\x1b[36m-+-\x1b[0m ОБЩАЯ СТОИМОСТЬ ВСЕХ ПОЗИЦИЙ: \x1b[32m$${formatNumber(totalPositionsValue.toFixed(2))}\x1b[0m`);
-        console.log(`\x1b[36m-+-\x1b[0m ОБЩАЯ СУММА ВСЕХ КОМИССИЙ: \x1b[32m$${formatNumber(totalFeesValue.toFixed(2))}\x1b[0m`);
+        console.log(`\n\x1b[36m-+-\x1b[0m TOTAL VALUE OF ALL POSITIONS: \x1b[32m$${formatNumber(totalPositionsValue.toFixed(2))}\x1b[0m`);
+        console.log(`\x1b[36m-+-\x1b[0m TOTAL AMOUNT OF ALL FEES: \x1b[32m$${formatNumber(totalFeesValue.toFixed(2))}\x1b[0m`);
         
-        console.log("\n\x1b[36m-+-\x1b[0m СПИСОК ПУЛОВ:");
+        console.log("\n\x1b[36m-+-\x1b[0m LIST OF POOLS:");
         uniquePools.forEach((name, pool) => {
             console.log(`
 \x1b[36m• POOL: \x1b[0m${name}
@@ -89,12 +89,12 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
 `);
         });
         if (positionCheck) {
-            const Choice = await question("\n[...] Выберите действие: \n1: Закрыть позиции\n2: Закрыть позиции и продать все токены\n3: Переоткрыть позиции\n4: Повторная проверка\n5: Клейм комсы\n6: Вернуться в главное меню\n\n[...] Выберите действие (1-6): ");
+            const Choice = await question("\n[...] Select an action: \n1: Close positions\n2: Close positions and sell all tokens\n3: Reopen positions\n4: Recheck\n5: Claim fees\n6: Return to main menu\n\n[...] Select an action (1-6): ");
             if (Choice === '1') {
-                const predefinedPool = await question("\n[...] Введите адрес пула: ");
+                const predefinedPool = await question("\n[...] Enter pool address: ");
                 await handleRemovePosition(wallets, predefinedPool);
             } else if (Choice === '2') {
-                const predefinedPool = await question("\n[...] Введите адрес пула: ");
+                const predefinedPool = await question("\n[...] Enter pool address: ");
                 await handleRemovePosition(wallets, predefinedPool);
                 await handleSwapTokens(wallets, '2', '1');
             } else if (Choice === '3') {
@@ -102,8 +102,8 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
             } else if (Choice === '4') {
                 await displayPositionsTable(wallets, true);
             } else if (Choice === '5') {
-                const poolAddress = await question("\n[...] Введите адрес пула: ");
-                const sellChoice = await question("\n[...] Продать заклейменные токены?\n1: Да\n2: Нет\n\n[...] Ваш выбор (1-2): ");
+                const poolAddress = await question("\n[...] Enter pool address: ");
+                const sellChoice = await question("\n[...] Sell claimed tokens?\n1: Yes\n2: No\n\n[...] Your choice (1-2): ");
                 if (sellChoice === '1') {
                     await processClaimRewards(wallets, poolAddress, false);
                     await handleSwapTokens(wallets, '2', '1');
@@ -115,7 +115,7 @@ export async function displayPositionsTable(wallets,positionCheck = true) {
             }
         }
     } else {
-        console.log("\n[!] Нет активных позиций для отображения");
+        console.log("\n[!] No active positions to display");
         returnToMainMenu();
     }
 }
@@ -125,7 +125,7 @@ export async function walletInfo(wallets, positionCheck = true) {
     const solBalances = [];
     let totalUsdValue = 0;
     const solPrice = await getSolPrice();
-    console.log("\n[⌛] Получение информации о кошельках...");
+    console.log("\n[⌛] Getting wallet information...");
 
     const promises = wallets.map(async (wallet) => {
         try {
@@ -133,19 +133,19 @@ export async function walletInfo(wallets, positionCheck = true) {
             await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
             const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
             
-            // Получаем баланс SOL
+            // Get SOL balance
             const solBalance = await conn.getBalance(user.publicKey);
             const solValue = (solBalance / LAMPORTS_PER_SOL).toFixed(4);
             const solUsdValue = (solValue * solPrice).toFixed(2);
             
             solBalances.push({
-                "Адрес кошелька": user.publicKey.toString(),
+                "Wallet address": user.publicKey.toString(),
                 "SOL": solValue,
                 "USD": `$${solUsdValue}`
             });
             totalUsdValue += parseFloat(solUsdValue);
 
-            if (positionCheck) {    // Получаем токены
+            if (positionCheck) {    // Get tokens
                 const tokens = await conn.getParsedTokenAccountsByOwner(
                     user.publicKey,
                     { programId: TOKEN_PROGRAM_ID }
@@ -162,25 +162,25 @@ export async function walletInfo(wallets, positionCheck = true) {
                                 const usdValue = (tokenAmount.uiAmount * parseFloat(tokenData.priceUSD)).toFixed(2);
                                 
                                 tableData.push({
-                                    "Адрес кошелька": user.publicKey.toString().slice(0, 4) + '..',
-                                    "Токен": tokenData.tokenSymbol,
-                                    "Адрес токена": tokenInfo.mint,
-                                    "Количество": formatNumber(tokenAmount.uiAmount),
-                                    "Цена": `$${tokenData.priceUSD}`,
-                                    "Стоимость": `$${formatNumber(parseFloat(usdValue))}`
+                                    "Wallet address": user.publicKey.toString().slice(0, 4) + '..',
+                                    "Token": tokenData.tokenSymbol,
+                                    "Token address": tokenInfo.mint,
+                                    "Amount": formatNumber(tokenAmount.uiAmount),
+                                    "Price": `$${tokenData.priceUSD}`,
+                                    "Value": `$${formatNumber(parseFloat(usdValue))}`
                                 });
                                 
                                 totalUsdValue += parseFloat(usdValue);
                             }
                         } catch (error) {
-                            console.log(`~~~ [!] [${user.publicKey.toString().slice(0, 4)}..] Пропущен токен ${tokenInfo.mint}: нет данных о цене | utils.js`);
+                            console.log(`~~~ [!] [${user.publicKey.toString().slice(0, 4)}..] Skipped token ${tokenInfo.mint}: no price data | utils.js`);
                         }
                     }
                 });
                 await Promise.all(tokenPromises);
             }
         } catch (error) {
-            console.error(`~~~ [!] [${wallet.description.slice(0, 4)}..] Ошибка обработки кошелька | UserInfo.js`);
+            console.error(`~~~ [!] [${wallet.description.slice(0, 4)}..] Error processing wallet | UserInfo.js`);
         }
     });
 
@@ -191,24 +191,24 @@ export async function walletInfo(wallets, positionCheck = true) {
     }
 
     if (solBalances.length > 0) {
-        console.log("\n\x1b[36m-+-\x1b[0m БАЛАНСЫ SOL:");
+        console.log("\n\x1b[36m-+-\x1b[0m SOL BALANCES:");
         console.table(solBalances);
     }
 
     if (tableData.length > 0) {
-        console.log("\n\x1b[36m-+-\x1b[0m БАЛАНСЫ ТОКЕНОВ:");
+        console.log("\n\x1b[36m-+-\x1b[0m TOKEN BALANCES:");
         console.table(tableData);
     }
 
     if (positionCheck) {
-        console.log(`\n\x1b[36m-+-\x1b[0m ОБЩАЯ СТОИМОСТЬ ВСЕХ АКТИВОВ: \x1b[32m$${formatNumber(totalUsdValue)}\x1b[0m`);
+        console.log(`\n\x1b[36m-+-\x1b[0m TOTAL VALUE OF ALL ASSETS: \x1b[32m$${formatNumber(totalUsdValue)}\x1b[0m`);
 
-        // Обновленное меню действий
-        const choice = await question("\n[...] Выберите действие:\n1. Купить/продать токены\n2. Консолидировать токены\n3. Консолидировать SOL\n4. Распределить SOL\n5: Обновить баланс\n6: Вернуться в главное меню\n\n[...] Выберите действие (1-6): ");
+        // Updated action menu
+        const choice = await question("\n[...] Select an action:\n1. Buy/sell tokens\n2. Consolidate tokens\n3. Consolidate SOL\n4. Distribute SOL\n5: Refresh balance\n6: Return to main menu\n\n[...] Select an action (1-6): ");
 
         switch (choice) {
             case '1':
-                const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\nВыберите: ");
+                const FastWalletsWay = await question("\n[...] Use all wallets\n1: Yes\n2: No\nSelect: ");
                 const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
                 await handleSwapTokens(selectedWallets);
                 break;
@@ -225,11 +225,11 @@ export async function walletInfo(wallets, positionCheck = true) {
                 await walletInfo(wallets, true);
                 break;
             case '6':
-                console.log("\n=== Работа завершена");
+                console.log("\n=== Work completed");
                 returnToMainMenu();
                 break;
             default:
-                console.log("\n[!] Некорректный выбор");
+                console.log("\n[!] Incorrect choice");
                 returnToMainMenu();
         }
     }
@@ -253,7 +253,7 @@ export async function showAvailablePools(wallets) {
     await Promise.all(promises);
 
     if (uniquePools.size > 0) {
-        console.log("\n\x1b[36m-+-\x1b[0m СПИСОК ПУЛОВ:");
+        console.log("\n\x1b[36m-+-\x1b[0m LIST OF POOLS:");
         uniquePools.forEach((name, pool) => {
             console.log(`
 \x1b[36m• POOL: \x1b[0m${name}
@@ -265,7 +265,7 @@ export async function showAvailablePools(wallets) {
         });
         return true;
     } else {
-        console.log("\n[!] Нет активных позиций для отображения");
+        console.log("\n[!] No active positions to display");
         return false;
     }
 }

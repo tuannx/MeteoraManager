@@ -37,48 +37,48 @@ export async function handlePoolCheck() {
     
     while (continueChecking) {
         try {
-            const tokenAddress = await question("\n[...] Введите адрес токена: ");
+            const tokenAddress = await question("\n[...] Enter token address: ");
             new PublicKey(tokenAddress);
             const poolDetails = await getPoolsInfo(tokenAddress);
             
             if (poolDetails.length === 0) {
-                console.log("\n\x1b[31m~~~ [!] | ERROR | Для данного токена не найдены пулы Meteora\x1b[0m");
+                console.log("\n\x1b[31m~~~ [!] | ERROR | No Meteora pools found for this token\x1b[0m");
             } else {
-                console.log("\n\x1b[36m[!] | INFO | Информация о пулах Meteora:\x1b[0m");
+                console.log("\n\x1b[36m[!] | INFO | Meteora pools information:\x1b[0m");
                 const filteredPoolDetails = poolDetails.filter(pool => pool.binStep >= 80 && pool.baseFee >= 0.8 && pool.volume.h1 > 0);
                 
                 const tableData = filteredPoolDetails.map(pool => ({
-                    'ПУЛЛ': `${pool.pairAddress}`,
-                    'ТОКЕН': `${pool.name}`,
-                    'ЦЕНА (USD/SOL)': `$${pool.priceUsd} / ${pool.priceNative} SOL`,
-                    'ЛИКВИДНОСТЬ': `$${formatNumber(pool.liquidity)} ${calculateLiquidityStatus(pool)}`,
-                    'ОБЪЁМ 5м / 1ч': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
-                    'БИНЫ': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
-                    'ФИСЫ %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
-                    'ФИСЫ 5м/1ч': calculateFees(pool),
-                    'ФИСЫ 24ч': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'Н/Д'
+                    'POOL': `${pool.pairAddress}`,
+                    'TOKEN': `${pool.name}`,
+                    'PRICE (USD/SOL)': `$${pool.priceUsd} / ${pool.priceNative} SOL`,
+                    'LIQUIDITY': `$${formatNumber(pool.liquidity)} ${calculateLiquidityStatus(pool)}`,
+                    'VOLUME 5m / 1h': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
+                    'BINS': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
+                    'FEES %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
+                    'FEES 5m/1h': calculateFees(pool),
+                    'FEES 24h': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'N/A'
                 }));
 
                 console.table(tableData);
                 
-                console.log("\nВыберите действие:");
-                console.log("1: Открыть позицию");
-                console.log("2: Проверить бандл");
-                console.log("3: Продолжить проверку");
-                console.log("4: Завершить");
-                console.log("5: Вернуться в главное меню");
+                console.log("\nSelect an action:");
+                console.log("1: Open position");
+                console.log("2: Check bundle");
+                console.log("3: Continue checking");
+                console.log("4: Finish");
+                console.log("5: Return to main menu");
                 
-                const choice = await question("\n[...] Ваш выбор (1-5): ");
+                const choice = await question("\n[...] Your choice (1-5): ");
                 
                 if (choice === "1" && filteredPoolDetails.length > 0) {
-                    console.log("\nДоступные пулы:");
+                    console.log("\nAvailable pools:");
                     filteredPoolDetails.forEach((pool, index) => {
                         console.log(`${index}: ${pool.pairAddress}`);
                     });
-                    const poolNumber = await question("\n[...] Введите номер пула: ");
+                    const poolNumber = await question("\n[...] Enter pool number: ");
                     const selectedPool = filteredPoolDetails[poolNumber]?.pairAddress;
                     if (!selectedPool) {
-                        throw new Error("Неверный номер пула");
+                        throw new Error("Invalid pool number");
                     }
                     continueChecking = false;
                     await handleOpenPositionFromCheck(selectedPool);
@@ -96,13 +96,13 @@ export async function handlePoolCheck() {
                     continueChecking = false;
                     returnToMainMenu();
                 } else {
-                    console.error(`\x1b[31m~~~ [!] | ERROR | Неверный выбор\x1b[0m\n`);
+                    console.error(`\x1b[31m~~~ [!] | ERROR | Invalid choice\x1b[0m\n`);
                     continueChecking = true;
                 }
             }
         } catch (error) {
-            console.error("~~~ [!] Ошибка:", error.message);
-            const choice = await question("\n[...] Продолжить проверку? (1: Да, 2: Нет): ");
+            console.error("~~~ [!] Error:", error.message);
+            const choice = await question("\n[...] Continue checking? (1: Yes, 2: No): ");
             if (choice === "2") {
                 continueChecking = false;
                 returnToMainMenu();
@@ -112,11 +112,11 @@ export async function handlePoolCheck() {
 }
 
 async function handleOpenPositionFromCheck(poolAddress) {
-    const FastWalletsWay = await question("\n[...] Использовать все кошельки\n1: Да\n2: Нет\n\n[...] Ваш выбор (1-2): ");
+    const FastWalletsWay = await question("\n[...] Use all wallets\n1: Yes\n2: No\n\n[...] Your choice (1-2): ");
     const selectedWallets = FastWalletsWay === '1' ? Object.values(WALLETS) : await selectWallets();
-    const solAmount = await question("\n[...] Введите размер позиции в SOL: ");
+    const solAmount = await question("\n[...] Enter position size in SOL: ");
     await handleOpenPosition(selectedWallets, poolAddress, solAmount);
-    console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Открытие позиций завершено\x1b[0m`);
+    console.log(`\n\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Opening positions completed\x1b[0m`);
 }
 
 export async function logWalletsTokensPools(selectedWallets) {
@@ -141,7 +141,7 @@ export async function logWalletsTokensPools(selectedWallets) {
                     tokenBalances.set(mintAddress, (tokenBalances.get(mintAddress) || 0) + amount);
                 });
             } catch (error) {
-                console.error(`Ошибка для кошелька ${wallet.description}: ${error.message}`);
+                console.error(`Error for wallet ${wallet.description}: ${error.message}`);
             }
         });
 
@@ -161,15 +161,15 @@ export async function logWalletsTokensPools(selectedWallets) {
                     
                     if (filteredPoolDetails.length > 0) {
                         const tableData = filteredPoolDetails.map(pool => ({
-                            'ПУЛЛ': `${pool.pairAddress}`,
-                            'ТОКЕН': `${pool.name}`,
-                            'ЦЕНА (USD/SOL)': `$${pool.priceUsd} / ${pool.priceNative} SOL`,
-                            'ЛИКВИДНОСТЬ': `$${formatNumber(pool.liquidity)} ${calculateLiquidityStatus(pool)}`,
-                            'ОБЪЁМ 5м / 1ч': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
-                            'БИНЫ': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
-                            'ФИСЫ %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
-                            'ФИСЫ 5м/1ч': calculateFees(pool),
-                            'ФИСЫ 24ч': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'Н/Д'
+                            'POOL': `${pool.pairAddress}`,
+                            'TOKEN': `${pool.name}`,
+                            'PRICE (USD/SOL)': `$${pool.priceUsd} / ${pool.priceNative} SOL`,
+                            'LIQUIDITY': `$${formatNumber(pool.liquidity)} ${calculateLiquidityStatus(pool)}`,
+                            'VOLUME 5m / 1h': `${formatNumber(pool.volume.m5)} / ${formatNumber(pool.volume.h1)} ${calculateVolumeStatus(pool)}`,
+                            'BINS': `${pool.binStep} ${calculateBinStepStatus(pool)}`,
+                            'FEES %': `${pool.baseFee} ${calculateBaseFeeStatus(pool)}`,
+                            'FEES 5m/1h': calculateFees(pool),
+                            'FEES 24h': pool.fees24 ? `$${Number(pool.fees24).toFixed(0)}` : 'N/A'
                         }));
 
                         console.table(tableData);
@@ -178,6 +178,6 @@ export async function logWalletsTokensPools(selectedWallets) {
             } catch (error) {}
         }
     } catch (error) {
-        console.error("Основная ошибка:", error.message);
+        console.error("Main error:", error.message);
     }
-} 
+}

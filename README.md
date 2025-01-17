@@ -1,39 +1,39 @@
 # Meteora Position Manager
 
-Автоматизированный менеджер позиций для Meteora DeFi на Solana.
+Automated position manager for Meteora DeFi on Solana.
 
-## 🛠 Предварительные требования
+## 🛠 Prerequisites
 
-- установите Node.js
+- Install Node.js
 
-## 📝 Конфигурация
+## 📝 Configuration
 
-### Настройка конфига (src/config/index.js)
+### Configuration (src/config/index.js)
 
 ```javascript
-// Настройки RPC и прокси
+// RPC and proxy settings
 const RPC_CONFIG = {
-    USE_MULTI_RPC: 1,    // 0 - один RPC, 1 - несколько RPC
-    USE_MULTI_PROXY: 1,  // 0 - без прокси, 1 - с прокси
-    POOL_SIZE: 5         // Количество одновременных соединений (рекомендуется 5-10)
+    USE_MULTI_RPC: 1,    // 0 - single RPC, 1 - multiple RPCs
+    USE_MULTI_PROXY: 1,  // 0 - no proxy, 1 - with proxy
+    POOL_SIZE: 5         // Number of concurrent connections (recommended 5-10)
 };
 
-// Настройки для свапов юпитера
-export const SLIPPAGE_BPS = 5 * 100; // слиппэж 5%
-export const PRIORITY_FEE = 0.002 * 1000000000; // приоритетная комиссия 0.002 SOL
+// Jupiter swap settings
+export const SLIPPAGE_BPS = 5 * 100; // slippage 5%
+export const PRIORITY_FEE = 0.002 * 1000000000; // priority fee 0.002 SOL
 
-// Вставьте свои RPC URL
+// Insert your RPC URLs
 const RPC_ENDPOINTS = [
     "https://your-rpc-1.com",
     "https://your-rpc-2.com"
-    // Можно добавить больше RPC
+    // Add more RPCs
 ];
 
-// Вставьте свои прокси в формате: "ip:port:username:password"
+// Insert your proxies in the format: "ip:port:username:password"
 const PROXY_LIST = [
     "11.99.99.99:9999:user:pass",
     "55.99.99.99:9999:user:pass"
-    // Можно добавить больше прокси
+    // Add more proxies
 ];
 
 export const WALLETS = {
@@ -45,60 +45,60 @@ export const WALLETS = {
         privateKey: "Your Private Key2",
         description: "Your Wallet Address2"
     },
-    // Добавьте дополнительные кошельки по необходимости
+    // Add more wallets as needed
 };
 
-export const TOTAL_RANGE_INTERVAL = 68; // Диапазон для позиций (максимальное значение 69)
+export const TOTAL_RANGE_INTERVAL = 68; // Range for positions (maximum value 69)
 ```
 
-### Подробная настройка RPC и прокси
+### Detailed RPC and Proxy Configuration
 
-1. **Настройка режима работы:**
-   - `USE_MULTI_RPC: 0` - Использовать только один RPC (первый из списка)
-   - `USE_MULTI_RPC: 1` - Использовать все RPC по очереди
-   - `USE_MULTI_PROXY: 0` - Не использовать прокси
-   - `USE_MULTI_PROXY: 1` - Использовать прокси
-   - `POOL_SIZE` - количество одновременных соединений:
-     - 5 - для обычной работы
-     - 10 - для интенсивной работы
-     - 3 - для легкой нагрузки
+1. **Operating mode settings:**
+   - `USE_MULTI_RPC: 0` - Use only one RPC (first from the list)
+   - `USE_MULTI_RPC: 1` - Use all RPCs in sequence
+   - `USE_MULTI_PROXY: 0` - Do not use proxies
+   - `USE_MULTI_PROXY: 1` - Use proxies
+   - `POOL_SIZE` - number of concurrent connections:
+     - 5 - for normal operation
+     - 10 - for intensive operation
+     - 3 - for light load
 
-2. **Добавление RPC:**
+2. **Adding RPCs:**
    ```javascript
    const RPC_ENDPOINTS = [
-       "https://mainnet.helius-rpc.com/?api-key=ваш-ключ-1",
-       "https://mainnet.helius-rpc.com/?api-key=ваш-ключ-2"
+       "https://mainnet.helius-rpc.com/?api-key=your-key-1",
+       "https://mainnet.helius-rpc.com/?api-key=your-key-2"
    ];
    ```
-   - Арендуйте RPC на сайтах:
+   - Rent RPCs from sites:
      - [Helius](https://helius.xyz/)
      - [QuickNode](https://quicknode.com/)
 
-3. **Добавление прокси:**
+3. **Adding proxies:**
    ```javascript
    const PROXY_LIST = [
        "ip:port:username:password",
        "ip:port:username:password"
    ];
    ```
-   - Формат: "IP:ПОРТ:ЛОГИН:ПАРОЛЬ"
-   - Пример: "192.168.1.1:8080:user123:pass456"
-   - Рекомендуется использовать приватные прокси
+   - Format: "IP:PORT:LOGIN:PASSWORD"
+   - Example: "192.168.1.1:8080:user123:pass456"
+   - It is recommended to use private proxies
 
-4. **Примеры настройки:**
-   
-   Только один RPC без прокси:
+4. **Configuration examples:**
+
+   Only one RPC without proxy:
    ```javascript
    const RPC_CONFIG = {
        USE_MULTI_RPC: 0,
        USE_MULTI_PROXY: 0,
        POOL_SIZE: 3
    };
-   const RPC_ENDPOINTS = ["https://ваш-rpc-url"];
+   const RPC_ENDPOINTS = ["https://your-rpc-url"];
    const PROXY_LIST = [];
    ```
 
-   Несколько RPC с прокси:
+   Multiple RPCs with proxies:
    ```javascript
    const RPC_CONFIG = {
        USE_MULTI_RPC: 1,
@@ -106,8 +106,8 @@ export const TOTAL_RANGE_INTERVAL = 68; // Диапазон для позици�
        POOL_SIZE: 5
    };
    const RPC_ENDPOINTS = [
-       "https://rpc1.com/?api-key=ключ1",
-       "https://rpc2.com/?api-key=ключ2"
+       "https://rpc1.com/?api-key=key1",
+       "https://rpc2.com/?api-key=key2"
    ];
    const PROXY_LIST = [
        "11.22.33.44:8080:user1:pass1",
@@ -115,68 +115,67 @@ export const TOTAL_RANGE_INTERVAL = 68; // Диапазон для позици�
    ];
    ```
 
-## 🚀 Использование
+## 🚀 Usage
 
-Запустите программу находясь в директории проекта:
+Run the program from the project directory:
 ```bash
 node main
 ```
 
-### Основные функции:
+### Main functions:
 
-1. **Добавить ликвидность**
-   - В токенах (Открывает BidAsk позицию в токенах)
-   - В SOL (Открывает BidAsk позицию в SOL)
+1. **Add liquidity**
+   - In tokens (Opens a BidAsk position in tokens)
+   - In SOL (Opens a BidAsk position in SOL)
 
-2. **Удалить ликвидность**
-   - Закрытие выбранных позиций
+2. **Remove liquidity**
+   - Closing selected positions
 
-3. **Переоткрыть позицию**
-   - Закрытие и открытие позиции в новом диапазоне
+3. **Reopen position**
+   - Closing and opening a position in a new range
 
-4. **Кошельки**
-   - Проверить позиции (Проверяет все позиции в кошельке)
-   - Проверить баланс (Проверяет баланс кошельков)
-   - Консолидация
-     - Консолидировать токены (на основной кошелек)
-     - Консолидировать SOL (на основной кошелек)
-   - Распределить SOL (Распределяет SOL на все кошельки)
+4. **Wallets**
+   - Check positions (Checks all positions in the wallet)
+   - Check balance (Checks the balance of wallets)
+   - Consolidation
+     - Consolidate tokens (to the main wallet)
+     - Consolidate SOL (to the main wallet)
+   - Distribute SOL (Distributes SOL to all wallets)
 
-5. **Чекер пулов**
-   - Ищет пулы по контракту токена
+5. **Pool checker**
+   - Searches for pools by token contract
 
-6. **Авточекер позиций**
-   - Закрыть позиции и продать токены
-   - Переоткрыть позиции в токенах
+6. **Auto position checker**
+   - Close positions and sell tokens
+   - Reopen positions in tokens
 
-7. **Свап**
-   - Обмен токенов через Jupiter
+7. **Swap**
+   - Token exchange via Jupiter
 
-8. **Завершить работу**
-   - Выход из программы
+8. **Exit**
+   - Exit the program
 
-## 📊 Мониторинг позиций
+## 📊 Monitoring positions
 
-### Авточекер имеет два режима работы:
+### Auto checker has two modes:
 
-1. **Закрытие и продажа**
-   - Закрывает позиции при выходе из ренжа
-   - Консолидирует токены на основной кошелек
-   - Продает все токены
+1. **Close and sell**
+   - Closes positions when out of range
+   - Consolidates tokens to the main wallet
+   - Sells all tokens
 
-2. **Переоткрытие позиций**
-   - Закрывает позиции при выходе из ренжа
-   - Автоматически открывает новые позиции в токенах
-   - Продолжает мониторинг новых позиций
+2. **Reopen positions**
+   - Closes positions when out of range
+   - Automatically opens new positions in tokens
+   - Continues monitoring new positions
 
-## ⚠️ Важное замечание
+## ⚠️ Important note
 
-Лучше дважды делайте проверки перед повторными закрытиями/открытиями позиций, так как апишка метеоры может подтупливать
+It is better to double-check before re-closing/opening positions, as the Meteora API may be slow.
 
-
-## Саппорт
-По всем вопросам обращайтесь:
+## Support
+For all questions, please contact:
 - Telegram: @sectordot
 
-Телеграм канал: 
+Telegram channel:
 - Telegram: @sectormoves

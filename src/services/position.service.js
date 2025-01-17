@@ -41,14 +41,14 @@ export async function createPosition(poolAddress, user, amountInLamports, strate
 
         try {
             if (TRANSACTION_MODE === 1) {
-                // Деген мод - не ждем подтверждения
+                // Degen mode - don't wait for confirmation
                 conn.sendTransaction(
                     createPositionTx,
                     [user, newOneSidePosition],
                     { skipPreflight: true, preflightCommitment: "processed" }
                 );
             } else {
-                // Безопасный мод - ждем подтверждения
+                // Safe mode - wait for confirmation
                 await sendAndConfirmTransaction(
                     conn,
                     createPositionTx,
@@ -56,11 +56,11 @@ export async function createPosition(poolAddress, user, amountInLamports, strate
                     { skipPreflight: false, preflightCommitment: "confirmed" }
                 );
             }
-            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Транзакция добавления ликвидности отправлена\x1b[0m`);
-        } catch {} // Игнорируем ошибку
+            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Liquidity addition transaction sent\x1b[0m`);
+        } catch {} // Ignore error
         
     } catch (error) {
-        console.error("\x1b[31m~~~ [!] | ERROR | Ошибка в createPosition\x1b[0m");
+        console.error("\x1b[31m~~~ [!] | ERROR | Error in createPosition\x1b[0m");
     }
 }
 
@@ -71,21 +71,21 @@ export async function removeLiquidity(poolAddress, user) {
         const position = await getFullPosition(user, poolAddress);
         
         if (!position) {
-            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Позиция не найдена для пула: ${poolAddress.toString()}\x1b[0m`);
+            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Position not found for pool: ${poolAddress.toString()}\x1b[0m`);
             return;
         }
 
         const positionData = position.lbPairPositionsData[0];
         
         if (!positionData) {
-            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] positionData отсутствует\x1b[0m`);
+            console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] positionData is missing\x1b[0m`);
             return;
         }
 
         const positionPublicKey = positionData.publicKey;
         
         if (!positionPublicKey) {
-            console.error(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] publicKey отсутствует в positionData\x1b[0m`);
+            console.error(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] publicKey is missing in positionData\x1b[0m`);
             return;
         }
 
@@ -105,14 +105,14 @@ export async function removeLiquidity(poolAddress, user) {
 
         try {
             if (TRANSACTION_MODE === 1) {
-                // Деген мод - не ждем подтверждения
+                // Degen mode - don't wait for confirmation
                 conn.sendTransaction(
                     removeLiquidityTx,
                     [user],
                     { skipPreflight: true, preflightCommitment: "processed" }
                 );
             } else {
-                // Безопасный мод - ждем подтверждения
+                // Safe mode - wait for confirmation
                 await sendAndConfirmTransaction(
                     conn,
                     removeLiquidityTx,
@@ -120,11 +120,11 @@ export async function removeLiquidity(poolAddress, user) {
                     { skipPreflight: false, preflightCommitment: "confirmed" }
                 );
             }
-            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Транзакция удаления ликвидности отправлена\x1b[0m`);
-        } catch {} // Игнорируем ошибку
+            console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Liquidity removal transaction sent\x1b[0m`);
+        } catch {} // Ignore error
         
     } catch (error) {
-        console.error("\x1b[31m~~~ [!] | ERROR | Ошибка в removeLiquidity\x1b[0m");
+        console.error("\x1b[31m~~~ [!] | ERROR | Error in removeLiquidity\x1b[0m");
         throw error;
     }
 }
@@ -137,14 +137,14 @@ async function sellTokensWithRetries(wallet, tokenAddress, maxAttempts = 3) {
     while (hasTokens && attempt < maxAttempts) {
         attempt++;
         if (attempt > 1) {
-            console.log(`\n\x1b[36m[⌛] | WAITING | Попытка №${attempt} продажи токенов...\x1b[0m`);
+            console.log(`\n\x1b[36m[⌛] | WAITING | Attempt №${attempt} to sell tokens...\x1b[0m`);
         }
 
         try {
             await processSellAllTokens(wallet, tokenAddress);
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // Проверяем, остались ли токены
+            // Check if tokens remain
             const conn = await getConnection();
             const accounts = await conn.getParsedTokenAccountsByOwner(
                 user.publicKey,
@@ -156,10 +156,10 @@ async function sellTokensWithRetries(wallet, tokenAddress, maxAttempts = 3) {
             );
             
             if (hasTokens) {
-                console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Остались токены после продажи\x1b[0m`);
+                console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Tokens remain after sale\x1b[0m`);
             }
         } catch (error) {
-            console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка продажи: ${error.message}\x1b[0m`);
+            console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Sale error: ${error.message}\x1b[0m`);
         }
     }
 
@@ -173,11 +173,11 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
     try {
         validPoolAddress = new PublicKey(poolAddress.trim());
     } catch (error) {
-        throw new Error(`\x1b[31m~~~ [!] | ERROR | Некорректный адрес пула: ${error.message}\x1b[0m`);
+        throw new Error(`\x1b[31m~~~ [!] | ERROR | Invalid pool address: ${error.message}\x1b[0m`);
     }
     
     process.on('SIGINT', () => {
-        console.log(`\n\n\x1b[36m${new Date().toLocaleTimeString()} | Мониторинг остановлен\x1b[0m\n\n`);
+        console.log(`\n\n\x1b[36m${new Date().toLocaleTimeString()} | Monitoring stopped\x1b[0m\n\n`);
         process.exit(0);
     });
 
@@ -185,9 +185,9 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
         try {
             const poolsToClose = new Set();
             const walletsWithPositions = new Map();
-            const positionsInfo = []; // Создаем массив для всех позиций
+            const positionsInfo = []; // Create an array for all positions
 
-            // Проверяем позиции всех кошельков
+            // Check positions of all wallets
             const promises = wallets.map(async wallet => {
                 await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
@@ -202,24 +202,24 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                         const positionSolValue = position.amounts.positionToken2;
                         const activeBinID = position.binID.current;
                         
-                        // Добавляем информацию о позиции в общий массив
+                        // Add position information to the general array
                         positionsInfo.push({
-                            'Кошелек': wallet.description.slice(0, 4) + '...',
+                            'Wallet': wallet.description.slice(0, 4) + '...',
                             'SOL value': positionSolValue,
-                            'Текущий bin': position.binID.current,
-                            'Нижний bin': position.binID.lower
+                            'Current bin': position.binID.current,
+                            'Lower bin': position.binID.lower
                         });
                         
                         if (positionSolValue === 0 || position.binID.current === position.binID.lower) {
                             await displayLogo();
-                            await console.log("\n\x1b[36m[!] | INFO | Для остановки мониторинга нажмите Ctrl+C\x1b[0m\n");
-                            console.log(`\n\x1b[33m• Позиция требует закрытия:\x1b[0m`);
-                            console.log(`  └─ \x1b[90mКошелек:\x1b[0m ${wallet.description.slice(0, 4)}...`);
-                            console.log(`  └─ \x1b[90mТокен:\x1b[0m ${tokenName}`);
-                            console.log(`  └─ \x1b[90mАдрес токена:\x1b[0m ${tokenAddress}`);
+                            await console.log("\n\x1b[36m[!] | INFO | Press Ctrl+C to stop monitoring\x1b[0m\n");
+                            console.log(`\n\x1b[33m• Position requires closing:\x1b[0m`);
+                            console.log(`  └─ \x1b[90mWallet:\x1b[0m ${wallet.description.slice(0, 4)}...`);
+                            console.log(`  └─ \x1b[90mToken:\x1b[0m ${tokenName}`);
+                            console.log(`  └─ \x1b[90mToken address:\x1b[0m ${tokenAddress}`);
                             console.log(`  └─ \x1b[90mSOL value:\x1b[0m ${positionSolValue}`);
-                            console.log(`  └─ \x1b[90mТекущий bin:\x1b[0m ${position.binID.current}`);
-                            console.log(`  └─ \x1b[90mНижний bin:\x1b[0m ${position.binID.lower}`);
+                            console.log(`  └─ \x1b[90mCurrent bin:\x1b[0m ${position.binID.current}`);
+                            console.log(`  └─ \x1b[90mLower bin:\x1b[0m ${position.binID.lower}`);
                             
                             poolsToClose.add(position.poolAddress);
                             if (!walletsWithPositions.has(position.poolAddress)) {
@@ -228,7 +228,7 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                             walletsWithPositions.get(position.poolAddress).push(wallet);
                         } else {
                             await displayLogo();
-                            await console.log("\n\x1b[36m[!] | INFO | Для остановки мониторинга нажмите Ctrl+C\x1b[0m\n");
+                            await console.log("\n\x1b[36m[!] | INFO | Press Ctrl+C to stop monitoring\x1b[0m\n");
                             console.table(positionsInfo);
                         }
                     }
@@ -236,10 +236,10 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
             });
             await Promise.all(promises);
             
-            // Выводим информацию о всех позициях
+            // Output information about all positions
             if (positionsInfo.length > 0) {
                 await displayLogo();
-                await console.log("\n\x1b[36m[!] | INFO | Для остановки мониторинга нажмите Ctrl+C\x1b[0m\n");
+                await console.log("\n\x1b[36m[!] | INFO | Press Ctrl+C to stop monitoring\x1b[0m\n");
                 console.table(positionsInfo);
             }
 
@@ -248,35 +248,35 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                     const affectedWallets = walletsWithPositions.get(poolAddress);
                     
                     if (action === "1") {
-                        // Закрытие, консолидация и продажа
-                        console.log(`\n\x1b[36m[⌛] | WAITING | Закрытие позиций для ${affectedWallets.length} кошельков...\x1b[0m`);
+                        // Closing, consolidation and sale
+                        console.log(`\n\x1b[36m[⌛] | WAITING | Closing positions for ${affectedWallets.length} wallets...\x1b[0m`);
                         
-                        // Закрываем позиции
+                        // Close positions
                         let remainingWallets = [];
                         for (let attempts = 0; attempts < 3; attempts++) {
                             if (attempts > 0) {
-                                console.log(`\n\x1b[36m[⌛] | WAITING | Попытка ${attempts + 1} закрытия позиций...\x1b[0m`);
+                                console.log(`\n\x1b[36m[⌛] | WAITING | Attempt ${attempts + 1} to close positions...\x1b[0m`);
                             }
                             
                             const promises = affectedWallets.map(async (wallet) => {
                                 const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
                                 try {
                                     await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
-                                    console.log(`\n\x1b[36m[⌛] | WAITING | [${user.publicKey.toString().slice(0, 4)}...] Отправка транзакции на закрытие позиции\x1b[0m`);
+                                    console.log(`\n\x1b[36m[⌛] | WAITING | [${user.publicKey.toString().slice(0, 4)}...] Sending transaction to close position\x1b[0m`);
                                     await processRemoveLiquidity(wallet, poolAddress);  
                                     await new Promise(resolve => { setTimeout(resolve, 2000 + Math.random() * 1000) });
-                                    // Проверяем, закрылась ли позиция
+                                    // Check if the position has closed
                                     const position = await getFullPosition(user, new PublicKey(poolAddress));
                                     
                                     if (position) {
-                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Позиция не закрылась, повторная попытка\x1b[0m`);
+                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Position not closed, retrying\x1b[0m`);
                                         console.log(position);
                                         remainingWallets.push(wallet);
                                     } else {
-                                        console.log(`\x1b[32m${new Date().toLocaleTimeString()} | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Позиция успешно закрыта\x1b[0m`);
+                                        console.log(`\x1b[32m${new Date().toLocaleTimeString()} | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Position successfully closed\x1b[0m`);
                                     }
                                 } catch (error) {
-                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${user.publicKey.toString().slice(0, 4)}...] Ошибка при закрытии: ${error.message}\x1b[0m`);
+                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${user.publicKey.toString().slice(0, 4)}...] Error closing: ${error.message}\x1b[0m`);
                                     remainingWallets.push(wallet);
                                 }
                             });
@@ -287,22 +287,22 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                             remainingWallets = [];
                         }
 
-                        // Консолидация и продажа только если все позиции закрыты
+                        // Consolidation and sale only if all positions are closed
                         if (remainingWallets.length === 0) {
-                            console.log(`\n\x1b[36m[⌛] | WAITING | Переходим к продаже токенов\x1b[0m`);
-                            // Продаем токены с каждого кошелька
+                            console.log(`\n\x1b[36m[⌛] | WAITING | Moving to sell tokens\x1b[0m`);
+                            // Sell tokens from each wallet
                             const sellPromises = affectedWallets.map(async (wallet) => {
                                 await sellTokensWithRetries(wallet, tokenAddress);
                                 await new Promise(resolve => setTimeout(resolve, 2000));
                             });
                             await Promise.all(sellPromises);
                         } else {
-                            console.log(`\x1b[31m~~~ [!] | ERROR | Не удалось закрыть все позиции, попробуйте вручную (Через главное меню)\x1b[0m`);
+                            console.log(`\x1b[31m~~~ [!] | ERROR | Failed to close all positions, try manually (Through the main menu)\x1b[0m`);
                             process.exit(0);
                         }
                         
                     } else if (action === "2") {
-                        // Кейс 2: Закрытие и открытие в токенах
+                        // Case 2: Closing and opening in tokens
                         const promises = affectedWallets.map(async (wallet) => {
                             await new Promise(resolve => { setTimeout(resolve, 1000 + Math.random() * 1000) });
                             let isPositionClosed = false;
@@ -310,77 +310,77 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                             let attempts = 0;
                             const maxAttempts = 3;
                             
-                            // Закрываем позицию
+                            // Close the position
                             while (!isPositionClosed && attempts < maxAttempts) {
                                 attempts++;
                                 if (attempts > 1) {
-                                    console.log(`\n\x1b[36m[⌛] | WAITING | Попытка ${attempts} закрытия позиции для [${wallet.description.slice(0, 4)}...]\x1b[0m`);
+                                    console.log(`\n\x1b[36m[⌛] | WAITING | Attempt ${attempts} to close position for [${wallet.description.slice(0, 4)}...]\x1b[0m`);
                                 }
                                 
                                 try {
-                                    console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на закрытие позиции\x1b[0m`);
+                                    console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Sending transaction to close position\x1b[0m`);
                                     await processRemoveLiquidity(wallet, poolAddress);                                    
-                                    // Проверяем, закрылась ли позиция
+                                    // Check if the position has closed
                                     const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
                                     const position = await getFullPosition(user, new PublicKey(poolAddress));
                                     
                                     if (position) {
-                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Позиция не закрылась\x1b[0m`);
+                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Position not closed\x1b[0m`);
                                         continue;
                                     }
                                     
                                     isPositionClosed = true;
-                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Позиция успешно закрыта\x1b[0m`);
+                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${user.publicKey.toString().slice(0, 4)}...] Position successfully closed\x1b[0m`);
                                     
                                 } catch (error) {
-                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка при закрытии: ${error.message}\x1b[0m`);
+                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Error closing: ${error.message}\x1b[0m`);
                                 }
                             }
 
                             if (!isPositionClosed) {
-                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Не удалось закрыть позицию после ${maxAttempts} попыток\x1b[0m`);
+                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Failed to close position after ${maxAttempts} attempts\x1b[0m`);
                             }
 
-                            // Открываем новую позицию
+                            // Open a new position
                             attempts = 0;
                             while (!isPositionOpened && attempts < maxAttempts) {
                                 
                                 attempts++;
                                 if (attempts > 1) {
-                                    console.log(`\n\x1b[36m[⌛] | WAITING | Попытка ${attempts} открытия позиции для [${wallet.description.slice(0, 4)}...]\x1b[0m`);
+                                    console.log(`\n\x1b[36m[⌛] | WAITING | Attempt ${attempts} to open position for [${wallet.description.slice(0, 4)}...]\x1b[0m`);
                                 }
                                 
                                 try {
                                     const user = Keypair.fromSecretKey(new Uint8Array(bs58.decode(wallet.privateKey)));
                                     let position = await getFullPosition(user, new PublicKey(poolAddress));
                                     if (!position) {
-                                        console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на открытие позиции в токенах\x1b[0m`);
+                                        console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Sending transaction to open position in tokens\x1b[0m`);
                                         await processCreateTokenPosition(wallet, poolAddress, strategy);
                                     }
-                                    // Проверяем, открылась ли позиция
+                                    // Check if the position has opened
                                     position = await getFullPosition(user, new PublicKey(poolAddress));
                                     if (!position) {
-                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Позиция не открылась\x1b[0m`);
+                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${user.publicKey.toString().slice(0, 4)}...] Position not opened\x1b[0m`);
                                         continue;
                                     }
                                     
                                     isPositionOpened = true;
-                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] Позиция успешно открыта\x1b[0m`);
+                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] Position successfully opened\x1b[0m`);
                                     
                                 } catch (error) {
-                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка при открытии: ${error.message}\x1b[0m`);
+                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Error opening: ${error.message}\x1b[0m`);
                                 }
                             }
 
                             if (!isPositionOpened) {
-                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Не удалось открыть позицию после ${maxAttempts} попыток\x1b[0m`);
+                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Failed to open position after ${maxAttempts} attempts\x1b[0m`);
                             }
                         });
                         await Promise.all(promises);
 
-                        // Начинаем мониторинг binDifference для успешно переоткрытых позиций
+                        // Start monitoring binDifference for successfully reopened positions
                         while (true) {
-                            console.log("\n\x1b[36m[⌛] | WAITING | Следующая проверка ренжа через 30 секунд...\x1b[0m");
+                            console.log("\n\x1b[36m[⌛] | WAITING | Next range check in 30 seconds...\x1b[0m");
                             await new Promise(resolve => setTimeout(resolve, 30000));
                             const promises = affectedWallets.map(async (wallet) => {
                                 let isPositionClosed = false;
@@ -397,78 +397,78 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                                         const binDifference = position.binID.current - position.binID.lower;
                                         
                                         if (binDifference > 5) {
-                                            console.log(`\n\x1b[33m• Требуется переоткрытие позиции:\x1b[0m`);
-                                            console.log(`  └─ \x1b[90mКошелек:\x1b[0m [${wallet.description.slice(0, 4)}...]`);
-                                            console.log(`  └─ \x1b[90mРазница binID:\x1b[0m ${binDifference}`);
+                                            console.log(`\n\x1b[33m• Position requires reopening:\x1b[0m`);
+                                            console.log(`  └─ \x1b[90mWallet:\x1b[0m [${wallet.description.slice(0, 4)}...]`);
+                                            console.log(`  └─ \x1b[90mbinID difference:\x1b[0m ${binDifference}`);
                                             
-                                            // Закрываем позицию
+                                            // Close the position
                                             while (!isPositionClosed && attempts < maxAttempts) {
                                                 attempts++;
                                                 if (attempts > 1) {
-                                                    console.log(`\n\x1b[36m[⌛] | WAITING | Попытка ${attempts} закрытия позиции для [${wallet.description.slice(0, 4)}...]\x1b[0m`);
+                                                    console.log(`\n\x1b[36m[⌛] | WAITING | Attempt ${attempts} to close position for [${wallet.description.slice(0, 4)}...]\x1b[0m`);
                                                 }
                                                 
                                                 try {
                                                     let fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
                                                     if (!fullPosition) {
-                                                        console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на закрытие позиции\x1b[0m`);
+                                                        console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Sending transaction to close position\x1b[0m`);
                                                         await processRemoveLiquidity(wallet, poolAddress);
                                                         await new Promise(resolve => { setTimeout(resolve, 2000 + Math.random() * 1000) });
                                                     }
                                                     fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
                                                     if (fullPosition) {
-                                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Позиция не закрылась\x1b[0m`);
+                                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Position not closed\x1b[0m`);
                                                         continue;
                                                     }
                                                     
                                                     isPositionClosed = true;
-                                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] Позиция успешно закрыта\x1b[0m`);
+                                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] Position successfully closed\x1b[0m`);
                                                     
                                                 } catch (error) {
-                                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка при закрытии: ${error.message}\x1b[0m`);
+                                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Error closing: ${error.message}\x1b[0m`);
                                                 }
                                             }
 
                                             if (!isPositionClosed) {
-                                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Не удалось закрыть позицию после ${maxAttempts} попыток\x1b[0m`);
+                                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Failed to close position after ${maxAttempts} attempts\x1b[0m`);
                                             }
 
-                                            // Открываем новую позицию
+                                            // Open a new position
                                             attempts = 0;
                                             while (!isPositionOpened && attempts < maxAttempts) {
                                                 attempts++;
                                                 if (attempts > 1) {
-                                                    console.log(`\n\x1b[36m[⌛] | WAITING | Попытка ${attempts} открытия позиции для [${wallet.description.slice(0, 4)}...]\x1b[0m`);
+                                                    console.log(`\n\x1b[36m[⌛] | WAITING | Attempt ${attempts} to open position for [${wallet.description.slice(0, 4)}...]\x1b[0m`);
                                                 }
                                                 
                                                 try {
                                                     let fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
                                                     if (!fullPosition) {
-                                                        console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Отправка транзакции на открытие позиции в токенах\x1b[0m`);
+                                                        console.log(`\n\x1b[36m[⌛] | WAITING | [${wallet.description.slice(0, 4)}...] Sending transaction to open position in tokens\x1b[0m`);
                                                         await processCreateTokenPosition(wallet, poolAddress, strategy);
                                                         await new Promise(resolve => { setTimeout(resolve, 2000 + Math.random() * 1000) });
                                                     }
                                                     fullPosition = await getFullPosition(user, new PublicKey(poolAddress));
                                                     if (!fullPosition) {
-                                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Позиция не открылась\x1b[0m`);
+                                                        console.log(`\x1b[31m~~~ [!] | ALERT | [${wallet.description.slice(0, 4)}...] Position not opened\x1b[0m`);
                                                         continue;
                                                     }
                                                     
                                                     isPositionOpened = true;
-                                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] Позиция успешно переоткрыта\x1b[0m`);
+                                                    console.log(`\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | [${wallet.description.slice(0, 4)}...] Position successfully reopened\x1b[0m`);
                                                     
                                                 } catch (error) {
-                                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка при открытии: ${error.message}\x1b[0m`);
+                                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Error opening: ${error.message}\x1b[0m`);
                                                 }
                                             }
 
                                             if (!isPositionOpened) {
-                                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Не удалось открыть позицию после ${maxAttempts} попыток\x1b[0m`);
+                                                console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Failed to open position after ${maxAttempts} attempts\x1b[0m`);
                                             }
                                         }
                                     }
                                 } catch (error) {
-                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Ошибка при проверке/переоткрытии: ${error.message}\x1b[0m`);
+                                    console.error(`\x1b[31m~~~ [!] | ERROR | [${wallet.description.slice(0, 4)}...] Error checking/reopening: ${error.message}\x1b[0m`);
                                 }
                             });
                             await Promise.all(promises);
@@ -477,16 +477,16 @@ export async function autoCheckPositions(wallets, action, poolAddress, strategy 
                 }
             } else {
                 if (positionsInfo.length === 0) {
-                    console.log(`\n\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | Позиций не найдено\x1b[0m\n`);
+                    console.log(`\n\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | No positions found\x1b[0m\n`);
                     process.exit(0);
                 }
-                console.log(`\n\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | Все позиции в норме\x1b[0m\n`);
+                console.log(`\n\x1b[32m[${new Date().toLocaleTimeString()}] | SUCCESS | All positions are normal\x1b[0m\n`);
             }
-            console.log(`\n\x1b[36m[⌛] | WAITING | Следующая проверка через 20 секунд...\x1b[0m`);
+            console.log(`\n\x1b[36m[⌛] | WAITING | Next check in 20 seconds...\x1b[0m`);
             await new Promise(resolve => setTimeout(resolve, 20000));
             
         } catch (error) {
-            console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка при проверке позицийx1b[0m`);
+            console.error(`\x1b[31m~~~ [!] | ERROR | Error checking positionsx1b[0m`);
             await new Promise(resolve => setTimeout(resolve, 10000));
         }
     }
@@ -499,7 +499,7 @@ export async function processWallet(walletData, poolAddress, solAmount, strategy
         const amountInLamports = parseFloat(solAmount) * LAMPORTS_PER_SOL;  
         await createPosition(new PublicKey(poolAddress), user, amountInLamports, strategy);
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при открытии позиции: ${error.message}\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Error opening position: ${error.message}\x1b[0m`);
     }
 }
 
@@ -512,7 +512,7 @@ export async function processRemoveLiquidity(walletData, poolAddress) {
             user
         );
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при удалении ликвидности\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Error removing liquidity\x1b[0m`);
         throw error;
     }
 }
@@ -524,7 +524,7 @@ export async function processSellAllTokens(walletData, tokenAddress = null) {
         const wallet = new Wallet(user);
         await sellAllTokens(wallet, tokenAddress);
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при продаже токенов\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Error selling tokens\x1b[0m`);
     }
 }
 
@@ -535,7 +535,7 @@ export async function processBuyToken(walletData, tokenAddress, solAmount) {
         const wallet = new Wallet(user);
         await buyToken(wallet, tokenAddress, solAmount);
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Ошибка при покупке токенов: ${error.message}\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | ${walletData.description.slice(0, 4)}... Error buying tokens: ${error.message}\x1b[0m`);
     }
 }
 
@@ -545,7 +545,7 @@ export async function claimAllRewards(user, poolAddress) {
         const position = await getFullPosition(user, poolAddress);
         
         if (!position) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Позиции не найдены\x1b[0m`);
+            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Positions not found\x1b[0m`);
             return;
         }
 
@@ -554,12 +554,12 @@ export async function claimAllRewards(user, poolAddress) {
         
         const positionData = position.lbPairPositionsData[0];
         if (!positionData) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... positionData отсутствует\x1b[0m`);
+            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... positionData is missing\x1b[0m`);
             return;
         }
 
         if (positionData.positionData.feeX.isZero() && positionData.positionData.feeY.isZero()) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Нет доступных фисов для клейма\x1b[0m`);
+            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... No fees available to claim\x1b[0m`);
             return;
         }
 
@@ -569,7 +569,7 @@ export async function claimAllRewards(user, poolAddress) {
         });
 
         if (!claimRewardsTxs || claimRewardsTxs.length === 0) {
-            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Не сформировались транзакции для клейма\x1b[0m`);
+            console.log(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... No transactions formed for claim\x1b[0m`);
             return;
         }
         
@@ -585,27 +585,27 @@ export async function claimAllRewards(user, poolAddress) {
                         [user],
                         { skipPreflight: true, preflightCommitment: "processed" }
                     );
-                    console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Транзакция клейма фисов отправлена (деген мод)\x1b[0m`);
+                    console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Claim fees transaction sent (degen mode)\x1b[0m`);
                 } else {
-                    // Безопасный мод - ждем подтверждения
+                    // Safe mode - wait for confirmation
                     const txHash = await sendAndConfirmTransaction(
                         conn,
                         tx,
                         [user],
                         { skipPreflight: false, preflightCommitment: "confirmed" }
                     );
-                    console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Хэш транзакции клейма фисов: ${txHash}\x1b[0m`);
+                    console.log(`\x1b[36m[${new Date().toLocaleTimeString()}] | SUCCESS | Claim fees transaction hash: ${txHash}\x1b[0m`);
                 }
                 
                 if (i < claimRewardsTxs.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             } catch (error) {
-                console.error(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Ошибка при отправке транзакции клейма фисов: ${error.message}\x1b[0m`);
+                console.error(`\x1b[31m~~~ [!] | ERROR | ${wallet.description.slice(0, 4)}... Error sending claim fees transaction: ${error.message}\x1b[0m`);
             }
         }
     } catch (error) {
-        console.error(`\x1b[31m~~~ [!] | ERROR | Ошибка в claimAllRewards: ${error.message}\x1b[0m`);
+        console.error(`\x1b[31m~~~ [!] | ERROR | Error in claimAllRewards: ${error.message}\x1b[0m`);
         throw error;
     }
 }
