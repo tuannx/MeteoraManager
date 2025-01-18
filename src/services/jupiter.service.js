@@ -2,7 +2,6 @@ import { VersionedTransaction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getConnection, SLIPPAGE_BPS, BUY_PRIORITY_FEE, SELL_PRIORITY_FEE } from '../config/index.js';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TRANSACTION_MODE } from '../config/index.js';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 import { RPC_CONFIG, PROXY_LIST } from '../config/index.js';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';

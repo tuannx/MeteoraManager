@@ -123,8 +123,8 @@ export const BUY_PRIORITY_FEE = 0.0005 * 1000000000; // 0.0005 SOL
 // Кошельки [!] Не советую использовать много кошельков, так как это может привести к ошибкам RPC
 export const WALLETS = {
     "1": {
-        privateKey: "3CQotVrC6yTc97LoPD8iS5WBLBRGiDYdyxfhVihZJdSA6Z6GXdReKc39CXMPHHaiHdC39vWpG5fdT8mxKBMjP5qZ", // Replace with your actual private key, store securely
-        description: "AwtqB8DqoXrVmL96HkSb8JxRaqAcKUBqkC46oRc996nT"
+        privateKey: "5HQ96Q82N4nBeAyEqgVXXNExvfjwHUZeRr9rRgkavFnZX27E5uevN5aUg9gzDt1dWqBnVfzAx1FA1EmDCFCyLWAf", // Replace with your actual private key, store securely
+        description: "BJ3iJ8WFwAHcrvsDhsMHftV4w3RRZQdfZTAFMA2BYLRh"
     },
     // "2": {
     //     privateKey: "PLACEHOLDER_PRIVATE_KEY_2", // Replace with your actual private key, store securely
